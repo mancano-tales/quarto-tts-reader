@@ -1,0 +1,145 @@
+/* tts-reader — read-aloud player for Quarto HTML documents
+ *
+ * LAYOUT RULE THAT GOVERNS THIS FILE: the highlight classes are toggled on
+ * individual words many times per second as the reader advances, so they must
+ * NEVER change a word's box. Horizontal padding, margins, borders or a heavier
+ * font-weight would reflow the line on every word and make the text visibly
+ * jump while you are trying to follow it. `box-shadow` paints outside the box
+ * without participating in layout, which is why it does the padding's job here.
+ */
+
+/* Word currently being spoken. */
+.tts-word.tts-word-active {
+  background-color: #facc15;
+  color: #000;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px #facc15, 0 0 6px rgba(250, 204, 21, 0.8);
+}
+
+/* Sentence (or clause) containing the current word. */
+.tts-word.tts-sentence-active {
+  background-color: #e0f2fe;
+  box-shadow: 0 0 0 2px #e0f2fe;
+  border-radius: 2px;
+}
+
+/* The active word must win over the sentence shading it sits inside. */
+.tts-word.tts-word-active.tts-sentence-active {
+  background-color: #facc15;
+  box-shadow: 0 0 0 2px #facc15, 0 0 6px rgba(250, 204, 21, 0.8);
+}
+
+/* Fallback when the voice never reports word boundaries (typical of remote
+   "Natural"/"Online" voices): shade the whole block so the reader still shows
+   where it is, instead of looking frozen. */
+.tts-block-active {
+  background-color: #e0f2fe;
+  border-radius: 3px;
+  box-shadow: 0 0 0 3px #e0f2fe;
+}
+
+.tts-readable {
+  cursor: pointer;
+}
+
+/* ---- Player bar -------------------------------------------------------
+ * Fixed, not sticky: Quarto's content containers can establish scroll/overflow
+ * contexts that silently neutralise `position: sticky` on a descendant. The bar
+ * is appended to <body>, so `fixed` is the predictable choice.
+ */
+#tts-reader-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(8px);
+  color: #f8fafc;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+#tts-reader-bar .tts-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#tts-reader-bar button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #334155;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#tts-reader-bar button:hover {
+  background: #475569;
+}
+
+#tts-reader-bar button:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+#tts-reader-bar #tts-play {
+  background: #2563eb;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#tts-reader-bar #tts-play.tts-playing {
+  background: #e11d48;
+}
+
+#tts-reader-bar #tts-stop {
+  background: #ef4444;
+}
+
+#tts-reader-bar label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+#tts-reader-bar select {
+  background: #1e293b;
+  color: #fff;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  max-width: 200px;
+}
+
+#tts-reader-bar .tts-status {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  min-width: 8ch;
+}
+
+/* Keep the last lines of the document reachable above the fixed bar. */
+body.tts-reader-active {
+  padding-bottom: 72px;
+}
+
+@media print {
+  #tts-reader-bar { display: none !important; }
+  body.tts-reader-active { padding-bottom: 0 !important; }
+}

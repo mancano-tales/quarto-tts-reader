@@ -1,0 +1,57 @@
+---
+title: "tts-reader — example"
+format: html
+filters:
+  - tts-reader
+tts-reader-enabled: true
+---
+
+## What to check here
+
+This document exists to verify the extension in isolation, before it is ever
+pointed at real work. Render it with `quarto render example/example.qmd` and
+open the result in a browser that has decent voices — Microsoft Edge is the
+usual choice.
+
+A paragraph with an [external link](https://quarto.org) and some *emphasis*
+inside it. Both must survive: the link has to remain clickable and navigate
+normally, and clicking it must **not** start the reader. The emphasis has to
+stay italic. If either breaks, the word-wrapping traversal is destroying markup
+instead of preserving it, which is the single most damaging failure this
+extension can have.
+
+A second paragraph, so that continuous reading has somewhere to go. When the
+first block finishes, the reader should move here on its own, scroll this block
+into view, and carry on without a gap. It should never read the same block
+twice, and never skip one.
+
+> An epigraph, which Quarto renders as a blockquote wrapping a paragraph.
+> This is the trap case: a naive selector matches both the blockquote and the
+> paragraph inside it, so the passage gets read aloud twice in a row. It must
+> be read exactly once.
+
+### Clicking into the middle
+
+Click any word in this sentence and the reader must start from that exact word,
+not from the top of the paragraph. Then press Pause and Resume: it should pick
+up near where it stopped, rather than restarting the block. Change the speed
+mid-sentence and it should keep its place too.
+
+Watch the text while it reads. Nothing may shift or jump as words light up — if
+the line reflows on every word, a highlight style is changing a word's box and
+the layout rule at the top of `tts-reader.css` has been violated.
+
+A block with a footnote reference[^1]. The marker is excluded from the spoken
+text, so you should not hear a stray number read out mid-sentence.
+
+[^1]: The footnote body itself is an ordinary block and may be read when the
+reader reaches it.
+
+### Voices without word boundaries
+
+Select a Microsoft "Natural" or "Online" voice. Those stream from the network
+and frequently never report word boundaries, so per-word highlighting is simply
+unavailable with them. The expected behaviour is not silence and not a frozen
+interface: after about 800ms the whole block should shade instead, and reading
+should continue normally. Verify that it does, and that reading does not stall,
+loop on one block, or skip ahead.
