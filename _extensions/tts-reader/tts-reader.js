@@ -38,6 +38,54 @@
   var BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, figcaption, td, th, dt, dd';
   var SENTENCE_RE = /[^.!?;:—]+[.!?;:—]*/g;
 
+  /*
+   * What gets spoken. Every one of these is content the reader can legitimately
+   * want either way, so none is decided in the code: they are choices, exposed
+   * in the ⚙ menu and remembered per browser.
+   *
+   * `citations` defaults to OFF, and it is the only one that does. In academic
+   * prose a parenthetical citation lands in the middle of nearly every
+   * sentence, and "(Breen, Luijkx, Müller and Pollak, 2009)" read aloud
+   * destroys the rhythm of the sentence carrying it. Everything else defaults
+   * to ON, because silently dropping content is the failure mode this project
+   * has already had to fix twice.
+   */
+  var DEFAULT_OPTS = {
+    citations: false,   // parenthetical citations — (Author, 2020)
+    parens: true,       // any other parenthetical aside
+    tables: true,       // table cells
+    captions: true,     // figure captions
+    footnotes: true     // the notes section at the end of the document
+  };
+  var OPT_LABELS = {
+    citations: 'Citações',
+    parens: 'Parênteses',
+    tables: 'Tabelas',
+    captions: 'Legendas',
+    footnotes: 'Notas de rodapé'
+  };
+  var STORAGE_KEY = 'tts-reader-opts';
+  var opts = loadOpts();
+
+  function loadOpts() {
+    var o = {};
+    for (var k in DEFAULT_OPTS) o[k] = DEFAULT_OPTS[k];
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        for (var j in DEFAULT_OPTS) {
+          if (typeof saved[j] === 'boolean') o[j] = saved[j];
+        }
+      }
+    } catch (e) { /* storage blocked or corrupt: defaults are fine */ }
+    return o;
+  }
+
+  function saveOpts() {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(opts)); } catch (e) {}
+  }
+
   var blocks = [];
   var blockText = new WeakMap();   // element -> canonical string handed to speak()
   var voices = [];
@@ -117,21 +165,49 @@
    * the <p>), so it drops out on its own; the outer <li> owns "parent text" and
    * keeps exactly that.
    */
+  /*
+   * Text that is never spoken, whatever the settings say.
+   *
+   * Footnote markers are a bare digit inside <a class="footnote-ref">; hearing
+   * "one" mid-sentence is noise. Rendered maths is skipped whole because KaTeX
+   * and MathJax each emit the expression twice — an accessible MathML copy plus
+   * visual glyph spans — so reading the subtree gives the formula duplicated,
+   * with the visual half arriving as loose characters. Silence beats nonsense;
+   * speaking maths properly is a separate problem, recorded in TODO.md.
+   */
+  var ALWAYS_SKIP = '.footnote-ref, .katex, mjx-container, .MathJax, mjx-assistive-mml';
+
+  /*
+   * A parenthetical citation can be dropped; a narrative one cannot.
+   *
+   * Citeproc wraps both in <span class="citation">, but they play different
+   * grammatical roles. "…eroded (Jackson, 2021)." survives losing the
+   * parenthesis intact. "Jackson (2021) argues that…" does not — remove it and
+   * the sentence loses its subject. The rendered text tells them apart: the
+   * parenthetical form opens with the bracket, the narrative form with a name.
+   */
+  function isDroppableCitation(el) {
+    var t = (el.textContent || '').trim();
+    return t.charAt(0) === '(' || t.charAt(0) === '[';
+  }
+
+  function isSkippedText(n) {
+    var parent = n.parentElement;
+    if (!parent) return false;
+    if (parent.closest(ALWAYS_SKIP)) return true;
+    if (!opts.citations) {
+      var cite = parent.closest('.citation');
+      if (cite && isDroppableCitation(cite)) return true;
+    }
+    return false;
+  }
+
   function ownedTextNodes(el) {
     var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
     var out = [];
     var n;
     while ((n = walker.nextNode())) {
-      // Footnote markers render as a bare digit inside <a class="footnote-ref">.
-      // Hearing "one" mid-sentence is noise, so they are left out entirely.
-      //
-      // Rendered maths is skipped whole. KaTeX and MathJax each emit the same
-      // expression twice — an accessible MathML copy plus visual glyph spans —
-      // so reading the subtree gives the formula twice, and the visual half is
-      // per-character gibberish anyway. Silence beats nonsense; speaking maths
-      // properly is a separate problem, recorded in TODO.md.
-      if (n.parentElement && n.parentElement.closest(
-            '.footnote-ref, .katex, mjx-container, .MathJax, mjx-assistive-mml')) continue;
+      if (isSkippedText(n)) continue;
       var p = n.parentElement;
       while (p && p !== el) {
         if (p.matches && p.matches(BLOCK_SELECTOR)) break;
@@ -147,11 +223,43 @@
     var all = Array.prototype.slice.call(root.querySelectorAll(BLOCK_SELECTOR));
     blocks = all.filter(function (el) {
       if (el.closest('#tts-reader-bar')) return false;
+      if (!opts.tables && (el.tagName === 'TD' || el.tagName === 'TH')) return false;
+      if (!opts.captions && el.tagName === 'FIGCAPTION') return false;
+      if (!opts.footnotes && el.closest('.footnotes')) return false;
       return ownedTextNodes(el).some(function (n) {
         return n.nodeValue && n.nodeValue.trim().length > 0;
       });
     });
     blocks.forEach(function (el) { el.classList.add('tts-readable'); });
+  }
+
+  /*
+   * Undo the wrapping so the document can be re-prepared under new settings.
+   *
+   * Every span is replaced by a plain text node and the element normalised,
+   * which merges the pieces back together. Text that was skipped was never
+   * wrapped, so it is already sitting there as plain text — nothing to undo.
+   * Re-preparation then happens lazily, as usual.
+   */
+  function unprepareAll() {
+    blocks.forEach(function (el) {
+      if (!el.dataset.ttsPrepared) return;
+      var spans = el.querySelectorAll('.tts-word');
+      for (var i = 0; i < spans.length; i++) {
+        spans[i].parentNode.replaceChild(
+          document.createTextNode(spans[i].textContent), spans[i]);
+      }
+      el.normalize();
+      delete el.dataset.ttsPrepared;
+      blockText['delete'](el);
+    });
+  }
+
+  function applyOpts() {
+    stop();
+    unprepareAll();
+    collectBlocks();
+    saveOpts();
   }
 
   /*
@@ -180,30 +288,57 @@
 
     var canonical = '';
     var offset = 0;
+    // A parenthetical aside can span several text nodes and cross element
+    // boundaries — "(see <em>ibid.</em>, p. 4)" — so the depth counter lives
+    // outside the per-node loop. It resets with each block, which also bounds
+    // the damage of an unbalanced bracket to the paragraph containing it.
+    var depth = 0;
+
+    function pushSpace() {
+      if (canonical.length > 0 && canonical.charAt(canonical.length - 1) !== ' ') {
+        canonical += ' ';
+        offset += 1;
+      }
+    }
 
     nodes.forEach(function (node) {
       var value = node.nodeValue;
       if (!value) return;
       var frag = document.createDocumentFragment();
-      var parts = value.split(/(\s+)/);
+      // Brackets are split out as their own tokens so depth changes land on
+      // boundaries. Splitting on whitespace alone would speak "(Author," and
+      // drop "2020)", cutting the aside in half.
+      var parts = value.split(/(\s+|[()])/);
 
       parts.forEach(function (part) {
         if (part === '') return;
+
+        if (part === '(' || part === ')') {
+          frag.appendChild(document.createTextNode(part));
+          if (opts.parens) { canonical += part; offset += part.length; }
+          depth = (part === '(') ? depth + 1 : Math.max(0, depth - 1);
+          return;
+        }
+
         if (/^\s+$/.test(part)) {
           frag.appendChild(document.createTextNode(part));
-          if (canonical.length > 0 && canonical.charAt(canonical.length - 1) !== ' ') {
-            canonical += ' ';
-            offset += 1;
-          }
-        } else {
-          var span = document.createElement('span');
-          span.className = 'tts-word';
-          span.textContent = part;
-          span.dataset.offset = String(offset);
-          frag.appendChild(span);
-          canonical += part;
-          offset += part.length;
+          if (opts.parens || depth === 0) pushSpace();
+          return;
         }
+
+        if (!opts.parens && depth > 0) {
+          // Inside a skipped aside: stays on the page, out of the audio.
+          frag.appendChild(document.createTextNode(part));
+          return;
+        }
+
+        var span = document.createElement('span');
+        span.className = 'tts-word';
+        span.textContent = part;
+        span.dataset.offset = String(offset);
+        frag.appendChild(span);
+        canonical += part;
+        offset += part.length;
       });
 
       node.parentNode.replaceChild(frag, node);
@@ -594,6 +729,7 @@
     right.appendChild(rate);
     right.appendChild(voiceLabel);
     right.appendChild(voice);
+    right.appendChild(buildOptsMenu());
 
     bar.appendChild(left);
     bar.appendChild(right);
@@ -626,6 +762,67 @@
         t = setTimeout(syncBarPadding, 150);
       });
     }
+  }
+
+  /* The ⚙ menu: one checkbox per kind of content that can be left unspoken. */
+  function buildOptsMenu() {
+    var wrap = document.createElement('div');
+    wrap.className = 'tts-opts';
+
+    var toggle = mkButton('⚙', 'O que ler em voz alta', function (e) {
+      e.stopPropagation();
+      var open = wrap.classList.toggle('tts-opts-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-haspopup', 'true');
+
+    var panel = document.createElement('div');
+    panel.className = 'tts-opts-panel';
+    panel.setAttribute('role', 'group');
+    panel.setAttribute('aria-label', 'O que ler em voz alta');
+
+    var title = document.createElement('p');
+    title.className = 'tts-opts-title';
+    title.textContent = 'Ler em voz alta:';
+    panel.appendChild(title);
+
+    Object.keys(DEFAULT_OPTS).forEach(function (key) {
+      var id = 'tts-opt-' + key;
+      var row = document.createElement('label');
+      row.setAttribute('for', id);
+
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.id = id;
+      box.checked = !!opts[key];
+      box.addEventListener('change', function () {
+        opts[key] = box.checked;
+        applyOpts();
+      });
+
+      row.appendChild(box);
+      row.appendChild(document.createTextNode(' ' + OPT_LABELS[key]));
+      panel.appendChild(row);
+    });
+
+    var note = document.createElement('p');
+    note.className = 'tts-opts-note';
+    note.textContent = 'Citações narrativas ("Autor (2020) mostra…") são sempre lidas: sem elas a frase perde o sujeito.';
+    panel.appendChild(note);
+
+    wrap.appendChild(toggle);
+    wrap.appendChild(panel);
+
+    // Click anywhere else closes it, but not a click inside the panel itself,
+    // which would shut the menu on every checkbox tick.
+    document.addEventListener('click', function (e) {
+      if (wrap.contains(e.target)) return;
+      wrap.classList.remove('tts-opts-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+
+    return wrap;
   }
 
   function mkButton(glyph, title, handler) {

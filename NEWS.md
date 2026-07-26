@@ -4,6 +4,20 @@
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
 
+## 2026-07-26 15:10 — v1.2.0: menu de o que ler em voz alta (citações, parênteses, tabelas, legendas, notas)
+
+Pedido do autor, a partir do uso real: em prosa acadêmica a citação parentética cai no meio de quase toda frase, e ouvir "(Breen, Luijkx, Müller e Pollak, 2009)" destrói a cadência da sentença que a carrega. Em vez de decidir isso no código, a v1.2.0 expõe a escolha: um menu ⚙ na barra com uma caixa por tipo de conteúdo que pode ficar fora do áudio — **citações, parênteses, tabelas, legendas de figura e a seção de notas de rodapé**. As escolhas ficam no `localStorage`, por navegador.
+
+**Só as citações vêm desligadas por padrão.** Todo o resto vem ligado, porque suprimir conteúdo em silêncio é exatamente o modo de falha que este projeto já teve de corrigir duas vezes (v1.1.0 e v1.1.1). A exceção se justifica pelo problema que motivou o pedido, e mesmo ela fica visível no menu em vez de escondida no código.
+
+**Citação parentética é descartável; narrativa não é.** O citeproc envolve as duas em `<span class="citation">`, mas elas têm papéis gramaticais diferentes: *"…haviam elas próprias erodido (Jackson, 2021)."* sobrevive à perda do parêntese; *"Jackson (2021) argumenta que…"* não — sem ela a frase perde o sujeito. O texto renderizado distingue as duas: a forma parentética abre com colchete, a narrativa com um nome. O menu deixa isso explícito numa nota, para não parecer inconsistência quando algumas citações continuarem sendo lidas.
+
+**Parênteses no meio da prosa** são tratados por contagem de profundidade ao longo do bloco, e não por elemento: um aparte pode atravessar vários nós de texto e elementos (`(ver <em>ibid.</em>, p. 4)`). Os parênteses são separados como tokens próprios antes do fatiamento, senão "(Autor," seria falado e "2020)" descartado, cortando o aparte ao meio. A profundidade zera a cada bloco, o que limita ao parágrafo o estrago de um parêntese desbalanceado. Aninhamento verificado: *"A tese (que revisa Breen (2009) e outros) argumenta isso"* → *"A tese argumenta isso."*
+
+**Mudar uma opção desfaz e refaz a preparação.** `unprepareAll()` troca cada `<span>` de palavra pelo nó de texto e normaliza o elemento, devolvendo o DOM ao estado anterior; a repreparação volta a ser sob demanda. Sem isso, o texto canônico de blocos já preparados ficaria desatualizado em relação às opções novas — e o texto canônico é justamente o que define os offsets.
+
+**Verificado**: sintaxe por `node --check`; classificação de citação provada em cinco casos (três parentéticas, duas narrativas); contagem de profundidade provada com parênteses aninhados; render nos dois sentidos da flag; versão 1.2.0 nos assets. **Não verificado**: comportamento de áudio, o menu na tela, e a persistência em `localStorage` — nada disso é observável sem navegador.
+
 ## 2026-07-26 11:56 — v1.1.1: títulos de capítulo e tabelas nunca eram lidos; clique em callout retrátil
 
 Dois blocos de conteúdo eram **silenciosamente pulados**, e nenhuma das duas rodadas de auditoria independente os encontrou.
