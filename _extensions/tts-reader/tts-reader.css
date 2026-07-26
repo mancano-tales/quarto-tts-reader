@@ -16,26 +16,50 @@
   box-shadow: 0 0 0 2px #facc15, 0 0 6px rgba(250, 204, 21, 0.8);
 }
 
-/* Sentence (or clause) containing the current word. */
+/* Sentence (or clause) containing the current word.
+ *
+ * `color` is set EXPLICITLY, and that is not decoration. These highlights paint
+ * a light background, but the text colour is inherited from the site theme. On
+ * a dark Quarto theme (darkly, slate, dim…) the inherited colour is near-white,
+ * which on #e0f2fe gives roughly 1.1:1 contrast — the highlighted text becomes
+ * invisible exactly while it is being read. Pinning a dark foreground keeps the
+ * highlight legible under any theme. */
 .tts-word.tts-sentence-active {
   background-color: #e0f2fe;
+  color: #0f172a;
   box-shadow: 0 0 0 2px #e0f2fe;
   border-radius: 2px;
+}
+
+/* …but a highlighted word inside a link must stay recognisable as a link,
+   rather than turning into ordinary body text for the moment it is read. */
+a .tts-word.tts-sentence-active,
+a .tts-word.tts-word-active {
+  color: #1d4ed8;
 }
 
 /* The active word must win over the sentence shading it sits inside. */
 .tts-word.tts-word-active.tts-sentence-active {
   background-color: #facc15;
+  color: #000;
   box-shadow: 0 0 0 2px #facc15, 0 0 6px rgba(250, 204, 21, 0.8);
 }
 
 /* Fallback when the voice never reports word boundaries (typical of remote
    "Natural"/"Online" voices): shade the whole block so the reader still shows
-   where it is, instead of looking frozen. */
+   where it is, instead of looking frozen.
+ *
+ * Same dark-theme trap as above, and it matters MORE here: this is the mode
+ * that users of the good remote voices actually see most of the time. */
 .tts-block-active {
   background-color: #e0f2fe;
+  color: #0f172a;
   border-radius: 3px;
   box-shadow: 0 0 0 3px #e0f2fe;
+}
+
+.tts-block-active a {
+  color: #1d4ed8;
 }
 
 .tts-readable {
@@ -134,7 +158,13 @@
   min-width: 8ch;
 }
 
-/* Keep the last lines of the document reachable above the fixed bar. */
+/* Keep the last lines of the document reachable above the fixed bar.
+ *
+ * This is only a floor. The bar wraps its controls on narrow screens, so its
+ * real height varies with viewport width and font size — a fixed value would
+ * cover the last line on small phones. The script measures the bar and sets an
+ * inline padding-bottom that wins over this rule; this value covers the moment
+ * before that runs, and the case where the script fails to load. */
 body.tts-reader-active {
   padding-bottom: 72px;
 }

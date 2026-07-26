@@ -30,6 +30,21 @@ twice, and never skip one.
 > paragraph inside it, so the passage gets read aloud twice in a row. It must
 > be read exactly once.
 
+### Nested blocks
+
+- A list item whose own text must be read, followed by children:
+    - first child item
+    - second child item
+- A second top-level item.
+
+The trap here is the mirror image of the epigraph above. Discarding every
+element that contains another block reads the epigraph correctly but silently
+loses the parent item's own text — "A list item whose own text must be read"
+would belong to no block at all, never spoken and not clickable. Reading every
+matching element instead duplicates the epigraph. Both have to be right at
+once: the parent item is read, its children are read after it, and nothing is
+read twice.
+
 ### Clicking into the middle
 
 Click any word in this sentence and the reader must start from that exact word,

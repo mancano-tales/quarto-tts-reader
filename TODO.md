@@ -12,6 +12,9 @@
 
 ## Prospectivo
 
+- **[2026-07-26 11:31 — Claude Opus 5]** **Iniciar leitura a partir do teclado.** Hoje a barra é totalmente operável por teclado, mas não há como focar uma palavra do meio do texto e ler dali sem mouse (apontado em auditoria, 2026-07-26). **Não** resolver com `tabindex="0"` nas palavras: um capítulo tem milhares delas, e milhares de paradas de Tab tornariam a página inutilizável para quem navega por teclado — o remédio seria pior que o problema. Caminhos a avaliar: navegação por bloco (atalho que move o "cursor de leitura" entre blocos), ou ler a partir do elemento que já tem foco.
+
+
 - **[2026-07-26 07:43 — Claude Opus 5]** Suporte a idioma por documento: hoje a voz é escolhida na barra e o `lang` vem da voz. Ler `lang` do documento e pré-selecionar uma voz compatível seria mais previsível para textos em português.
 
 - **[2026-07-26 07:43 — Claude Opus 5]** Atalhos de teclado (espaço para play/pause, setas para bloco anterior/próximo), com cuidado para não sequestrar a digitação em campos de formulário.

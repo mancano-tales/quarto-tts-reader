@@ -30,7 +30,7 @@ function Pandoc(doc)
 
   quarto.doc.add_html_dependency({
     name = 'tts-reader',
-    version = '1.0.0',
+    version = '1.1.0',
     scripts = { { path = 'tts-reader.js', attribs = { defer = 'true' } } },
     stylesheets = { 'tts-reader.css' }
   })

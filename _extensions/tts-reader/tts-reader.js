@@ -57,6 +57,10 @@
     return v.name + '|' + v.lang;
   }
 
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   function isRemoteVoice(v) {
     return !!v && (v.localService === false ||
       v.name.indexOf('Online') !== -1 ||
@@ -88,17 +92,46 @@
 
   // ------------------------------------------------------ document preparation
 
+  /*
+   * The text nodes a block OWNS: those not sitting inside a nested block.
+   *
+   * Blocks nest, and the two ways of coping with that are both wrong. Reading
+   * every matching element duplicates content — Quarto renders each epigraph as
+   * <blockquote><p>…</p></blockquote>, so the passage would be spoken twice.
+   * Discarding every element that contains another silently loses text: in
+   * `<li>parent text<ul><li>child</li></ul></li>` the parent's own words belong
+   * to no block at all and are never read, never clickable.
+   *
+   * Ownership settles both. The blockquote owns nothing (all its text lives in
+   * the <p>), so it drops out on its own; the outer <li> owns "parent text" and
+   * keeps exactly that.
+   */
+  function ownedTextNodes(el) {
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    var out = [];
+    var n;
+    while ((n = walker.nextNode())) {
+      // Footnote markers render as a bare digit inside <a class="footnote-ref">.
+      // Hearing "one" mid-sentence is noise, so they are left out entirely.
+      if (n.parentElement && n.parentElement.closest('.footnote-ref')) continue;
+      var p = n.parentElement;
+      while (p && p !== el) {
+        if (p.matches && p.matches(BLOCK_SELECTOR)) break;
+        p = p.parentElement;
+      }
+      if (p === el) out.push(n);
+    }
+    return out;
+  }
+
   function collectBlocks() {
     var root = document.querySelector('main') || document.body;
     var all = Array.prototype.slice.call(root.querySelectorAll(BLOCK_SELECTOR));
     blocks = all.filter(function (el) {
-      // Innermost blocks only. Quarto renders every epigraph and quote as
-      // <blockquote><p>…</p></blockquote>, which matches the selector twice —
-      // reading such a passage aloud twice in a row, and wrapping its words in
-      // nested spans with conflicting offsets.
       if (el.closest('#tts-reader-bar')) return false;
-      if (el.querySelector(BLOCK_SELECTOR)) return false;
-      return el.textContent.trim().length > 0;
+      return ownedTextNodes(el).some(function (n) {
+        return n.nodeValue && n.nodeValue.trim().length > 0;
+      });
     });
     blocks.forEach(function (el) { el.classList.add('tts-readable'); });
   }
@@ -123,16 +156,9 @@
    * fragment the sentence highlighting at meaningless points.
    */
   function wrapWords(el) {
-    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-    var nodes = [];
-    var n;
-    while ((n = walker.nextNode())) {
-      // Footnote markers render as a bare digit inside <a class="footnote-ref">.
-      // Hearing "one" in the middle of a sentence is noise, so they are left
-      // out of the spoken text entirely.
-      if (n.parentElement && n.parentElement.closest('.footnote-ref')) continue;
-      nodes.push(n);
-    }
+    // Only the block's own text — never a nested block's, which belongs to that
+    // block and is spoken when the reader reaches it. See ownedTextNodes.
+    var nodes = ownedTextNodes(el);
 
     var canonical = '';
     var offset = 0;
@@ -294,7 +320,10 @@
       utteranceStarted = true;
       if (currentIndex !== index) return;
       clearAllHighlight();
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Respect prefers-reduced-motion: smooth scrolling on every block is
+      // exactly the kind of unrequested motion that triggers vestibular
+      // discomfort. Jump instead of animating when the reader asked for that.
+      el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
       updateStatus();
       // If no word boundary arrives shortly, this voice does not report them
       // (typical of remote voices). Shade the whole block so the reader still
@@ -366,10 +395,16 @@
       }
     }, startDelay);
 
-    stallInterval = setInterval(function () {
-      if (!isSpeaking || isPaused || activeUtterance !== u) { clearInterval(stallInterval); return; }
+    // The id is captured in a local, not read back from the module variable: a
+    // later utterance reassigns `stallInterval`, and a stale callback clearing
+    // the module variable would kill the CURRENT timer while leaving its own
+    // running. Unreachable today, because stopTimers() runs before each new
+    // pair is armed, but it is the kind of coupling that breaks on the next
+    // edit rather than on this one.
+    var myStall = setInterval(function () {
+      if (!isSpeaking || isPaused || activeUtterance !== u) { clearInterval(myStall); return; }
       if (!utteranceStarted || synth.speaking || synth.pending) return;
-      clearInterval(stallInterval);
+      clearInterval(myStall);
       clearHandlers(u);
       // Only resume mid-block if a boundary actually reported progress. With a
       // voice that never fires onboundary, lastCharIndex still equals
@@ -383,6 +418,7 @@
         else stop();
       }
     }, 3000);
+    stallInterval = myStall;   // so stopTimers() can still cancel it
   }
 
   function startFrom(index, offset) {
@@ -545,6 +581,33 @@
     bar.appendChild(right);
     document.body.appendChild(bar);
     document.body.classList.add('tts-reader-active');
+    syncBarPadding();
+  }
+
+  /*
+   * Reserve exactly as much space at the foot of the document as the bar
+   * occupies. A fixed value cannot work: the bar wraps its controls, so its
+   * height depends on viewport width and font size, and on a narrow phone it
+   * grows past any constant and covers the last line of text.
+   */
+  function syncBarPadding() {
+    var bar = document.getElementById('tts-reader-bar');
+    if (!bar) return;
+    document.body.style.paddingBottom = (bar.offsetHeight + 12) + 'px';
+  }
+
+  function watchBarSize() {
+    var bar = document.getElementById('tts-reader-bar');
+    if (!bar) return;
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(syncBarPadding).observe(bar);
+    } else {
+      var t = null;
+      window.addEventListener('resize', function () {
+        if (t) clearTimeout(t);
+        t = setTimeout(syncBarPadding, 150);
+      });
+    }
   }
 
   function mkButton(glyph, title, handler) {
@@ -619,6 +682,7 @@
 
   function init() {
     buildBar();
+    watchBarSize();
     populateVoices();
     if (typeof synth.onvoiceschanged !== 'undefined') {
       synth.onvoiceschanged = populateVoices;
