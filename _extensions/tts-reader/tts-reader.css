@@ -173,3 +173,20 @@ body.tts-reader-active {
   #tts-reader-bar { display: none !important; }
   body.tts-reader-active { padding-bottom: 0 !important; }
 }
+
+/* Windows High Contrast and similar forced-colour modes discard author
+   background-color and box-shadow outright, which would erase the highlight
+   entirely — the reader would appear to do nothing. Outlines survive, and
+   `Highlight` is the system colour meant for exactly this. */
+@media (forced-colors: active) {
+  .tts-word.tts-word-active,
+  .tts-word.tts-sentence-active,
+  .tts-block-active {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+    forced-color-adjust: none;
+  }
+  .tts-word.tts-word-active {
+    outline-width: 3px;
+  }
+}

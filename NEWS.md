@@ -4,6 +4,26 @@
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
 
+## 2026-07-26 11:56 — v1.1.1: títulos de capítulo e tabelas nunca eram lidos; clique em callout retrátil
+
+Dois blocos de conteúdo eram **silenciosamente pulados**, e nenhuma das duas rodadas de auditoria independente os encontrou.
+
+**Títulos de capítulo.** O `BLOCK_SELECTOR` listava `h2`–`h5` e não `h1`. O Quarto renderiza o título de cada capítulo como `<h1 class="title">`, presente em 10 das 11 páginas do site em produção: o leitor começava pelo corpo do texto, pulando o título de todo capítulo.
+
+**Tabelas.** O Pandoc coloca o texto de célula diretamente em `<td>`, sem `<p>` que o capturasse, e `td` não estava no seletor. Todo o conteúdo tabular era pulado — inclusive o apêndice do codebook, que é quase inteiramente tabela. A segunda auditoria **afirmou explicitamente** que células de tabela eram "lidas uma única vez por célula, não afeta produção". Era falso, e verificável com um `grep` no seletor. Fabricar uma resposta é pior que não responder: a primeira rodada ao menos deixou a pergunta em branco.
+
+Os dois defeitos são a mesma falha de simetria que já produziu as omissões anteriores: uma regra aplicada a alguns irmãos e esquecida nos outros — `h2`–`h5` sim e `h1` não; `li` e `figcaption` sim e `td`/`th` não. O seletor passa a listar `h1`–`h6`, `td`, `th`, `dt`, `dd`, com comentário explicando por que acrescentar entrada aqui exige conferir os irmãos.
+
+**Clique dentro de callout retrátil** (achado válido da segunda auditoria, sem impacto nesta tese — não há `<details>` no site). O `onClick` excluía `details`, e como um callout retrátil do Quarto é um `<details>` envolvendo todo o corpo, o container engolia cada palavra dentro dele. Passa a excluir apenas `summary`, que é o controle de fato. `code` também saiu da lista: código inline vive no meio da prosa e deve ser clicável como qualquer palavra; `pre` permanece.
+
+**Matemática renderizada passa a ser pulada por inteiro.** KaTeX e MathJax emitem a mesma expressão duas vezes — uma cópia MathML acessível mais os glifos visuais —, de modo que ler a subárvore daria a fórmula duplicada, com a metade visual saindo como sequência de caracteres soltos. Silêncio é melhor que absurdo. Falar matemática de verdade é outro problema, registrado no `TODO.md`. Sem impacto atual: não há equação renderizada no site (as menções a "MathJax" no HTML são do próprio Quarto).
+
+**Modo de alto contraste.** `@media (forced-colors: active)` com `outline: 2px solid Highlight`, porque nesse modo o sistema descarta `background-color` e `box-shadow` — o destaque desapareceria por completo e o leitor pareceria não fazer nada.
+
+**Verificado**: sintaxe por `node --check`; os cinco casos de aninhamento provados por traço com saída esperada declarada (h1, células de tabela, epígrafe, lista aninhada, lista *loose*) — os dois primeiros falhavam antes, os três últimos garantem ausência de regressão; render nos dois sentidos da flag (2 tags ligada, 0 desligada); versão 1.1.1 no caminho dos assets. **Não verificado**: comportamento de áudio.
+
+**Nota sobre as duas auditorias.** Quatro defeitos reais desta leva e da anterior (`.tts-block-active`, texto de item pai em lista aninhada, `h1`, tabelas) foram encontrados na revisão dos relatórios, não pelos relatórios. O padrão é consistente: os auditores confirmam o que lhes é apresentado e produzem aprovação genérica ("tecnicamente impecável", "100% aprovado") mesmo quando o próprio relatório registra, linhas acima, que o comportamento de áudio nunca foi testado. Auditoria que não distingue o verificado do suposto não substitui verificação.
+
 ## 2026-07-26 11:31 — v1.1.0: texto de bloco aninhado, contraste em tema escuro, movimento reduzido, altura da barra
 
 Correções a partir de uma auditoria independente por sete subagentes (relatório em `Mancano2026-MA-Thesis`, rodada de 2026-07-26). A auditoria confirmou os sete defeitos históricos como corrigidos, descartou corretamente as três alegações falsas herdadas de rodadas anteriores, e produziu quatro achados — três válidos, um com remédio perigoso. Duas omissões dela foram encontradas na revisão do relatório e também estão corrigidas aqui.

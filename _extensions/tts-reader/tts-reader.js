@@ -24,7 +24,18 @@
   var synth = window.speechSynthesis;
   if (!synth) return;
 
-  var BLOCK_SELECTOR = 'p, h2, h3, h4, h5, blockquote, li, figcaption';
+  /*
+   * Every element that can hold readable text of its own.
+   *
+   * Two entries were missing until v1.1.1, and both were silent: `h1` (Quarto
+   * renders every chapter title as <h1 class="title">, so the reader skipped
+   * the title of each chapter) and table cells (Pandoc puts cell text directly
+   * in <td>, with no <p> to catch it, so entire tables were never spoken).
+   * Adding a heading level or a container here without checking its siblings is
+   * how both got lost: h2–h5 were listed and h1 forgotten, li and figcaption
+   * listed and td/th forgotten.
+   */
+  var BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, figcaption, td, th, dt, dd';
   var SENTENCE_RE = /[^.!?;:—]+[.!?;:—]*/g;
 
   var blocks = [];
@@ -113,7 +124,14 @@
     while ((n = walker.nextNode())) {
       // Footnote markers render as a bare digit inside <a class="footnote-ref">.
       // Hearing "one" mid-sentence is noise, so they are left out entirely.
-      if (n.parentElement && n.parentElement.closest('.footnote-ref')) continue;
+      //
+      // Rendered maths is skipped whole. KaTeX and MathJax each emit the same
+      // expression twice — an accessible MathML copy plus visual glyph spans —
+      // so reading the subtree gives the formula twice, and the visual half is
+      // per-character gibberish anyway. Silence beats nonsense; speaking maths
+      // properly is a separate problem, recorded in TODO.md.
+      if (n.parentElement && n.parentElement.closest(
+            '.footnote-ref, .katex, mjx-container, .MathJax, mjx-assistive-mml')) continue;
       var p = n.parentElement;
       while (p && p !== el) {
         if (p.matches && p.matches(BLOCK_SELECTOR)) break;
@@ -664,7 +682,13 @@
   function onClick(e) {
     // Never hijack interactive elements — citation links above all, which must
     // navigate to the bibliography rather than start the reader.
-    if (e.target.closest('#tts-reader-bar, a, button, input, select, textarea, details, summary, pre, code')) return;
+    //
+    // `summary`, NOT `details`: a collapsible Quarto callout is a <details>
+    // wrapping its whole body, so excluding the container swallowed every word
+    // inside it. Only the disclosure control itself must be left alone.
+    // `code` is likewise absent: inline code sits in ordinary prose and should
+    // be clickable like any other word. `pre` stays, for code blocks.
+    if (e.target.closest('#tts-reader-bar, a, button, input, select, textarea, summary, pre')) return;
 
     var sel = window.getSelection();
     if (sel && sel.toString().trim().length > 0) return;   // user is selecting text

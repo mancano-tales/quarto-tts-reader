@@ -12,6 +12,11 @@
 
 ## Prospectivo
 
+- **[2026-07-26 11:56 — Claude Opus 5]** **Falar matemática em vez de pular.** Desde a v1.1.1, `.katex`, `mjx-container` e afins são excluídos do texto falado: ler a subárvore daria a fórmula duas vezes (cópia MathML acessível + glifos visuais), e a metade visual sai como caracteres soltos. Pular é o menos ruim, não o certo. O caminho provável é ler o atributo `alttext` do MathML, ou o LaTeX de origem, que costumam existir no DOM.
+
+- **[2026-07-26 11:56 — Claude Opus 5]** **Decidir se tabela deve mesmo ser lida célula a célula.** A v1.1.1 acrescentou `td`/`th` ao seletor porque o conteúdo era pulado em silêncio — perda de conteúdo é pior que leitura tediosa. Mas ouvir o apêndice do codebook célula a célula pode ser insuportável na prática. Se for, a decisão deve ser **explícita e documentada**, não um esquecimento do seletor: remover `td, th` e registrar aqui o porquê. Avaliar depois do primeiro teste de escuta real.
+
+
 - **[2026-07-26 11:31 — Claude Opus 5]** **Iniciar leitura a partir do teclado.** Hoje a barra é totalmente operável por teclado, mas não há como focar uma palavra do meio do texto e ler dali sem mouse (apontado em auditoria, 2026-07-26). **Não** resolver com `tabindex="0"` nas palavras: um capítulo tem milhares delas, e milhares de paradas de Tab tornariam a página inutilizável para quem navega por teclado — o remédio seria pior que o problema. Caminhos a avaliar: navegação por bloco (atalho que move o "cursor de leitura" entre blocos), ou ler a partir do elemento que já tem foco.
 
 
