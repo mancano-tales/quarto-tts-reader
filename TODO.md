@@ -36,6 +36,8 @@
 
 ## Concluído
 
+- **[2026-07-27 16:19 — Claude Opus 5]** **v2.3.0: visual portado do `planning-repo`.** Papel/tinta/terracota no lugar do vidro fosco; régua de 3px, tipografia mono editorial sem fonte de rede, um único botão preenchido, ponto pulsante de fala em curso com guarda de movimento reduzido, realces fora da paleta Tailwind com contrastes calculados e dois azuis de link para os dois fundos. Realces permanecem idênticos em tema claro e escuro, de propósito. **Aparência inteiramente por verificar** — roteiro na § "Visual" do `example.qmd`.
+
 - **[2026-07-27 16:04 — Claude Opus 5]** **v2.2.0: persistência, filtro de idioma e clique desligável.** Voz (por `voiceKey`) e velocidade passam a viver no `localStorage`; seletor `Lang` agrupa por subtag primária com opção "Todos" e nunca interrompe a leitura ao filtrar; clique na palavra desligável no menu ⚙, com chave própria e sem passar por `applyOpts()`. **Por verificar no navegador** — roteiro na § "Persistência, filtro de idioma e clique" do `example.qmd`.
 
 - **[2026-07-27 15:31 — Claude Opus 5]** **v2.1.0: operação por teclado.** Cursor de leitura por *roving tabindex* (uma parada de Tab no documento inteiro), `↑`/`↓` entre parágrafos e `Enter` para ler dali; atalhos `Alt+P`, `Alt+Shift+←/→`, `Alt+.`, `Alt+↑/↓`; `Esc` fecha o menu ⚙ devolvendo o foco; região `aria-live` separada só para mudanças de estado. Resolve o item Prospectivo de 2026-07-26 11:31 ("Iniciar leitura a partir do teclado"), respeitando a advertência dele de não usar `tabindex="0"` nas palavras. **Comportamento de teclado por verificar no navegador** — roteiro na § "Operação por teclado" do `example.qmd`.

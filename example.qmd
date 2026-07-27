@@ -130,3 +130,24 @@ palavra". O cursor de mãozinha sobre o texto tem de sumir. Dê um duplo-clique
 numa palavra: ela deve ser selecionada sem que a leitura comece. Confira que o
 teclado continua funcionando com o clique desligado (`Tab` até a prosa, `Enter`).
 Remarque a opção e o clique volta a ler.
+
+### Visual (v2.3.0)
+
+A barra deve estar em preto quente com uma régua terracota de 3px no topo, sem
+vidro fosco, e ter **deslizado** de baixo para cima ao carregar a página — se
+ela simplesmente apareceu, o disparo no `requestAnimationFrame` falhou.
+
+Rótulos e contador em mono, caixa alta e espaçados; um único botão preenchido, o
+de play. Com a leitura em curso, o ponto à esquerda pulsa; ao pausar, ele para.
+
+**Links dentro do realce.** Leia um trecho com citação. A palavra acesa fica em
+terracota com texto escuro, e um link dentro dela tem de continuar **visivelmente
+um link** — azul escuro e sublinhado, não texto comum. Foi o defeito que quase
+entrou: azul claro sobre terracota dá 1,9:1 e some.
+
+**Tema escuro.** Alterne o tema do Quarto. A barra acompanha, mas os realces de
+palavra e frase têm de continuar **idênticos** — fundo claro e quente com texto
+escuro. Se eles inverterem para fundo escuro, é a regressão da v1.1.0 de volta.
+
+**Movimento reduzido.** Ligue "reduzir movimento" no sistema e recarregue: a
+barra tem de estar lá sem deslizar, e o ponto tem de marcar o estado sem pulsar.

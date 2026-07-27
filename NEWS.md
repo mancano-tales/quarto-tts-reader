@@ -3,6 +3,34 @@
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
+## 2026-07-27 16:19 — v2.3.0: papel, tinta e terracota — o visual portado do `planning-repo`
+
+Pedido do autor, com referência explícita: o `planning-repo`, do mesmo ecossistema. O que faz aquele desenho funcionar não é vidro fosco — é o oposto: **papel quente, tinta e terracota, com tipografia editorial**.
+
+**O `backdrop-filter` foi removido, não refinado.** A barra já era *dark glassmorphism* (`rgba(15,23,42,.96)` + `blur(8px)`); uma auditoria externa chegou a propor "modernizá-la" para exatamente aquilo que ela já era. Vidro lê como cromo emprestado de sistema de celular. A barra passa a ser tinta opaca (`#1F1B17`, preto **quente**, não azulado) com **régua terracota de 3px no topo** — o tratamento do `.mini-player` do `planning-repo`, e a coisa mais barata deste commit que mais muda a impressão do conjunto.
+
+**A tipografia é o que carrega o efeito, não as cores.** Rótulos e contador em mono de sistema a 9–10px, `letter-spacing: .13em`, caixa alta, em `#C9BFAB` (9,5:1 sobre a tinta). O `0.8rem` em `system-ui` anterior era o que fazia a barra parecer cromo de navegador. **Nenhuma fonte é baixada**: o `planning-repo` carrega Fraunces e IBM Plex do Google Fonts, e uma extensão Quarto não pode injetar requisição de rede em toda página — lentidão, vazamento do IP do leitor e preview offline quebrado. A pilha mono do sistema entrega o efeito, que vem do tamanho, do espaçamento e da caixa.
+
+**Um único elemento preenchido.** Os botões perdem o fundo e passam a viver de opacidade (0,55 → 1); só o play fica em terracota, para o olho ter um lugar onde pousar. Cantos de 2px, não 6px — o raio pequeno faz parte do vocabulário editorial.
+
+**As cores de destaque saíram do Tailwind.** `#facc15` e `#e0f2fe` são o amarelo e o azul padrão daquele framework, e são a assinatura visual de aplicativo genérico dentro de prosa longa. Agora: palavra em `#E0895A` e frase em `#F5E5D5`, ambas com texto fixado em `#1F1B17` — 6,5:1 e 13,4:1. Foi conferido, e `#D06224` (o terracota cheio) **reprovou** como fundo de palavra, com 4,46:1; daí o tom mais claro.
+
+**O defeito que quase entrou, e a razão de as regras de link existirem.** Uma proposta anterior pintava a palavra-link acesa de quase-preto: passa em contraste e destrói a identidade de link, que é exatamente o que aquelas duas regras existem para preservar. E `#1D4ED8`, o azul que serve sobre o tom claro da frase (5,6:1), dá **1,9:1** sobre o terracota da palavra ativa — some. São dois azuis diferentes porque são dois fundos diferentes: `#12306E` sobre a palavra (4,7:1), `#1D4ED8` sobre a frase. Sublinhado nos dois, que identifica o link pela forma além da cor e não participa do layout.
+
+**Os realces NÃO mudam com o tema, e isso é decisão, não esquecimento.** O movimento óbvio — inverter para fundo escuro sob tema escuro — é precisamente o bug corrigido na v1.1.0: a cor do texto aqui é fixada em escuro, então um fundo escuro tornaria as palavras ilegíveis exatamente enquanto são lidas. Fundos claros e quentes com texto escuro funcionam sob qualquer tema Quarto. **Só o cromo da barra responde ao tema.**
+
+**Movimento, com freio.** A barra desliza de baixo para cima (`translateY(100%)` → `0`, `.32s`), e a classe que dispara isso é adicionada no `requestAnimationFrame` seguinte — no mesmo quadro não há recálculo de estilo entre o `appendChild` e a classe, e a transição simplesmente não roda. O ponto pulsante do `.mini-player` volta como indicador de fala em curso, no `<span class="tts-dot">`, marcado `aria-hidden` por ser decorativo. Os dois têm guarda de `prefers-reduced-motion` — a barra chega sem deslizar e o ponto marca o estado sem pulsar. A versão do `planning-repo` não tem essa guarda; foi acrescentada aqui de propósito.
+
+**Preservados intactos**: as regras `:focus-visible` (restilizadas em terracota, nunca removidas — é a baixa clássica de um restyle "moderno", e seria regressão de acessibilidade no mesmo commit que fala em acessibilidade), os blocos `@media (forced-colors: active)` e `@media print`, e o `syncBarPadding()`. A regra de layout das palavras continua valendo: só `box-shadow`.
+
+**Verificado**: `node --check`; render sem flag → 2; render com `-M tts-reader-enabled=false` → 0; presença dos três blocos `@media` preservados. Os contrastes citados foram calculados, não estimados. **Não verificado**: absolutamente nada da aparência — se a barra desliza, se o ponto pulsa, se os links continuam legíveis sobre o realce, se o tema escuro se comporta. Roteiro na § "Visual" do `example.qmd`.
+
+**Metadados de Execução**:
+- **Data/Hora**: 2026-07-27 16:19 (Horário Local)
+- **Agente**: Claude Code / Claude Opus 5 / VS Code
+- **Mensagem do Commit**: "feat(v2.3.0): visual de papel, tinta e terracota portado do planning-repo"
+- **Arquivos afetados**: _extensions/tts-reader/tts-reader.css, _extensions/tts-reader/tts-reader.js, _extensions/tts-reader/tts-reader.lua, _extensions/tts-reader/_extension.yml, example.qmd, NEWS.md, TODO.md
+
 ## 2026-07-27 16:04 — v2.2.0: a voz e a velocidade param de esquecer, filtro de idioma, clique desligável
 
 **A lacuna mais irritante não era o filtro: era que nada era lembrado.** Nem a voz nem a velocidade sobreviviam a um recarregamento, e com `quarto preview` — que re-renderiza a cada save — isso significa reescolher as duas o dia inteiro. As duas passam a viver no `localStorage`. A voz é gravada pela chave `voiceKey` (`nome|lang`) e **nunca** por índice, pelo mesmo motivo já documentado no código: `getVoices()` pode ser re-obtido em ordem diferente, e um índice guardado apontaria em silêncio para outra voz.

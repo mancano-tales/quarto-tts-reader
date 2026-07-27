@@ -6,14 +6,40 @@
  * font-weight would reflow the line on every word and make the text visibly
  * jump while you are trying to follow it. `box-shadow` paints outside the box
  * without participating in layout, which is why it does the padding's job here.
+ *
+ * PALETTE: warm paper and ink with a terracotta accent, ported from the
+ * author's `planning-repo`. It replaced Tailwind's yellow/sky in v2.3.0 for a
+ * plain reason — those two colours are the visual signature of a generic web
+ * app, and this player sits inside long-form prose. Every value below was
+ * contrast-checked; the ratios are recorded where they matter.
+ */
+
+:root {
+  --tts-ink: #1F1B17;         /* warm near-black — bar chrome, text on highlights */
+  --tts-ink-soft: #C9BFAB;    /* bar labels: 9.5:1 on --tts-ink                   */
+  --tts-accent: #D06224;      /* terracotta — the 3px rule, the play button       */
+  --tts-accent-soft: #E0895A; /* current word: 6.5:1 with --tts-ink on it         */
+  --tts-accent-tint: #F5E5D5; /* current sentence: 13.4:1 with --tts-ink on it    */
+  --tts-rule: rgba(237, 228, 211, 0.20);
+  --tts-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+}
+
+/* ---- Highlights -------------------------------------------------------
+ *
+ * These do NOT change between light and dark themes, and that is deliberate.
+ * The obvious move — inverting to a dark background under a dark theme — is
+ * exactly the bug fixed in v1.1.0: the text colour here is pinned dark, so a
+ * dark background would make the highlighted words unreadable precisely while
+ * they are being read. Light warm backgrounds with pinned dark text work under
+ * every Quarto theme. Only the bar chrome below responds to the theme.
  */
 
 /* Word currently being spoken. */
 .tts-word.tts-word-active {
-  background-color: #facc15;
-  color: #000;
+  background-color: var(--tts-accent-soft);
+  color: var(--tts-ink);
   border-radius: 2px;
-  box-shadow: 0 0 0 2px #facc15, 0 0 6px rgba(250, 204, 21, 0.8);
+  box-shadow: 0 0 0 2px var(--tts-accent-soft), 0 0 6px rgba(208, 98, 36, 0.55);
 }
 
 /* Sentence (or clause) containing the current word.
@@ -21,28 +47,44 @@
  * `color` is set EXPLICITLY, and that is not decoration. These highlights paint
  * a light background, but the text colour is inherited from the site theme. On
  * a dark Quarto theme (darkly, slate, dim…) the inherited colour is near-white,
- * which on #e0f2fe gives roughly 1.1:1 contrast — the highlighted text becomes
- * invisible exactly while it is being read. Pinning a dark foreground keeps the
- * highlight legible under any theme. */
+ * which on a pale background gives roughly 1.1:1 contrast — the highlighted
+ * text becomes invisible exactly while it is being read. Pinning a dark
+ * foreground keeps the highlight legible under any theme. */
 .tts-word.tts-sentence-active {
-  background-color: #e0f2fe;
-  color: #0f172a;
-  box-shadow: 0 0 0 2px #e0f2fe;
+  background-color: var(--tts-accent-tint);
+  color: var(--tts-ink);
+  box-shadow: 0 0 0 2px var(--tts-accent-tint);
   border-radius: 2px;
 }
 
 /* …but a highlighted word inside a link must stay recognisable as a link,
-   rather than turning into ordinary body text for the moment it is read. */
-a .tts-word.tts-sentence-active,
-a .tts-word.tts-word-active {
+ * rather than turning into ordinary body text for the moment it is read.
+ *
+ * Two different blues, because the two backgrounds are different: #1D4ED8 gives
+ * 5.6:1 on the pale sentence tint but only 1.9:1 on the terracotta of the
+ * active word, where it would vanish. #12306E holds 4.7:1 there. The underline
+ * is belt and braces: it identifies the link by shape as well as by hue, and
+ * `text-decoration` does not participate in layout, so it is safe under the
+ * rule at the top of this file. */
+a .tts-word.tts-sentence-active {
   color: #1d4ed8;
+  text-decoration: underline;
+}
+
+a .tts-word.tts-word-active {
+  color: #12306E;
+  text-decoration: underline;
 }
 
 /* The active word must win over the sentence shading it sits inside. */
 .tts-word.tts-word-active.tts-sentence-active {
-  background-color: #facc15;
-  color: #000;
-  box-shadow: 0 0 0 2px #facc15, 0 0 6px rgba(250, 204, 21, 0.8);
+  background-color: var(--tts-accent-soft);
+  color: var(--tts-ink);
+  box-shadow: 0 0 0 2px var(--tts-accent-soft), 0 0 6px rgba(208, 98, 36, 0.55);
+}
+
+a .tts-word.tts-word-active.tts-sentence-active {
+  color: #12306E;
 }
 
 /* Fallback when the voice never reports word boundaries (typical of remote
@@ -52,14 +94,15 @@ a .tts-word.tts-word-active {
  * Same dark-theme trap as above, and it matters MORE here: this is the mode
  * that users of the good remote voices actually see most of the time. */
 .tts-block-active {
-  background-color: #e0f2fe;
-  color: #0f172a;
+  background-color: var(--tts-accent-tint);
+  color: var(--tts-ink);
   border-radius: 3px;
-  box-shadow: 0 0 0 3px #e0f2fe;
+  box-shadow: 0 0 0 3px var(--tts-accent-tint);
 }
 
 .tts-block-active a {
   color: #1d4ed8;
+  text-decoration: underline;
 }
 
 .tts-readable {
@@ -87,7 +130,7 @@ body.tts-click-disabled .tts-readable {
 }
 
 .tts-readable:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--tts-accent);
   outline-offset: 3px;
   border-radius: 2px;
 }
@@ -114,6 +157,12 @@ body.tts-click-disabled .tts-readable {
  * Fixed, not sticky: Quarto's content containers can establish scroll/overflow
  * contexts that silently neutralise `position: sticky` on a descendant. The bar
  * is appended to <body>, so `fixed` is the predictable choice.
+ *
+ * Opaque warm ink, NOT frosted glass. The bar carried `backdrop-filter:
+ * blur(8px)` until v2.3.0; it was dropped rather than refined. Glass reads as
+ * chrome borrowed from a phone OS, and the 3px terracotta rule along the top —
+ * lifted from the `planning-repo` mini-player — is what actually makes the bar
+ * look composed rather than bolted on.
  */
 #tts-reader-bar {
   position: fixed;
@@ -126,74 +175,135 @@ body.tts-click-disabled .tts-readable {
   gap: 10px;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  background: rgba(15, 23, 42, 0.96);
-  backdrop-filter: blur(8px);
-  color: #f8fafc;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
+  padding: 9px 16px;
+  background: var(--tts-ink);
+  color: #EDE4D3;
+  border-top: 3px solid var(--tts-accent);
+  box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.28);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 0.9rem;
   line-height: 1.2;
+
+  /* Slides up on arrival. The script adds .tts-bar-in on the next animation
+     frame — in the same frame there is no style recalculation between the
+     element being appended and the class landing, so the transition would
+     simply not run. */
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#tts-reader-bar.tts-bar-in {
+  transform: translateY(0);
 }
 
 #tts-reader-bar .tts-group {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
+/* Buttons carry no fill: in an editorial layout a row of filled rectangles
+   reads as a form. Exactly one element is filled — the play button — so the
+   eye has one place to land. */
 #tts-reader-bar button {
-  padding: 6px 10px;
+  padding: 5px 9px;
   border: none;
-  border-radius: 6px;
-  background: #334155;
-  color: #fff;
-  font-size: 0.9rem;
+  border-radius: 2px;
+  background: transparent;
+  color: #EDE4D3;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.15s;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s;
 }
 
 #tts-reader-bar button:hover {
-  background: #475569;
+  opacity: 1;
+  background: rgba(237, 228, 211, 0.08);
 }
 
 #tts-reader-bar button:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--tts-accent-soft);
   outline-offset: 2px;
+  opacity: 1;
 }
 
 #tts-reader-bar #tts-play {
-  background: #2563eb;
-  font-weight: 600;
+  background: var(--tts-accent);
+  color: #FFF7EF;
+  opacity: 1;
+  padding: 5px 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
-#tts-reader-bar #tts-play.tts-playing {
-  background: #e11d48;
+#tts-reader-bar #tts-play .tts-label {
+  font-family: var(--tts-mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
-#tts-reader-bar #tts-stop {
-  background: #ef4444;
+#tts-reader-bar #tts-play:hover {
+  background: #B9531C;
 }
 
+/* The pulsing dot from the planning-repo mini-player: the one piece of motion
+   in the bar, and only while something is actually being spoken. */
+#tts-reader-bar .tts-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tts-accent-soft);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+#tts-reader-bar.tts-bar-playing .tts-dot {
+  opacity: 1;
+  animation: tts-dot-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tts-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.65); }
+}
+
+/* Micro-labels in mono, uppercase and letter-spaced. This — not the colours —
+   is what carries the editorial feel; the previous 0.8rem system-ui made the
+   bar look like browser chrome. */
 #tts-reader-bar label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #cbd5e1;
+  font-family: var(--tts-mono);
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--tts-ink-soft);
 }
 
 #tts-reader-bar select {
-  background: #1e293b;
-  color: #fff;
-  border: 1px solid #475569;
-  border-radius: 4px;
+  background: rgba(237, 228, 211, 0.06);
+  color: #EDE4D3;
+  border: 1px solid var(--tts-rule);
+  border-radius: 2px;
   padding: 4px 6px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   max-width: 200px;
+}
+
+#tts-reader-bar select:focus-visible {
+  outline: 2px solid var(--tts-accent-soft);
+  outline-offset: 1px;
+}
+
+/* The <option> list is painted by the OS, which does not inherit the bar's
+   colours — without this the dropdown opens as light text on a light popup in
+   some browsers. */
+#tts-reader-bar select option {
+  background: var(--tts-ink);
+  color: #EDE4D3;
 }
 
 /* ⚙ menu of what to read aloud */
@@ -204,14 +314,15 @@ body.tts-click-disabled .tts-readable {
 #tts-reader-bar .tts-opts-panel {
   display: none;
   position: absolute;
-  bottom: calc(100% + 10px);
+  bottom: calc(100% + 12px);
   right: 0;
-  min-width: 15rem;
-  padding: 10px 12px;
-  background: #1e293b;
-  border: 1px solid #475569;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  min-width: 17rem;
+  padding: 12px 14px;
+  background: #17140F;
+  border: 1px solid var(--tts-rule);
+  border-top: 2px solid var(--tts-accent);
+  border-radius: 2px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   text-align: left;
 }
 
@@ -220,45 +331,53 @@ body.tts-click-disabled .tts-readable {
 }
 
 #tts-reader-bar .tts-opts-title {
-  margin: 0 0 6px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #cbd5e1;
+  margin: 0 0 8px;
+  font-family: var(--tts-mono);
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--tts-ink-soft);
 }
 
 /* Second heading in the ⚙ panel, ruled off from the list above it: the
    checkboxes there say what gets SPOKEN, this one says how reading STARTS. */
 #tts-reader-bar .tts-opts-title-second {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #475569;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--tts-rule);
 }
 
 #tts-reader-bar .tts-opts-panel label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 3px 0;
+  font-family: inherit;
   font-size: 0.85rem;
-  color: #f8fafc;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #EDE4D3;
   cursor: pointer;
 }
 
 #tts-reader-bar .tts-opts-panel input {
   cursor: pointer;
-  accent-color: #2563eb;
+  accent-color: var(--tts-accent);
 }
 
 #tts-reader-bar .tts-opts-note {
   margin: 8px 0 0;
   font-size: 0.72rem;
-  line-height: 1.35;
-  color: #94a3b8;
+  line-height: 1.4;
+  color: var(--tts-ink-soft);
+  opacity: 0.75;
 }
 
 #tts-reader-bar .tts-status {
-  font-size: 0.78rem;
-  color: #94a3b8;
+  font-family: var(--tts-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--tts-ink-soft);
   min-width: 8ch;
 }
 
@@ -270,7 +389,21 @@ body.tts-click-disabled .tts-readable {
  * inline padding-bottom that wins over this rule; this value covers the moment
  * before that runs, and the case where the script fails to load. */
 body.tts-reader-active {
-  padding-bottom: 72px;
+  padding-bottom: 76px;
+}
+
+/* Unrequested motion is the thing this media query exists to stop: a bar
+   sliding in and a dot throbbing at the foot of the page are both exactly that.
+   The bar still arrives and the dot still marks the playing state — they just
+   do it without moving. */
+@media (prefers-reduced-motion: reduce) {
+  #tts-reader-bar {
+    transition: none;
+    transform: translateY(0);
+  }
+  #tts-reader-bar.tts-bar-playing .tts-dot {
+    animation: none;
+  }
 }
 
 @media print {

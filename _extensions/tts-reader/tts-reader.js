@@ -748,6 +748,11 @@
       label.textContent = (state === 'paused') ? 'Resume' : 'Play';
       btn.classList.remove('tts-playing');
     }
+    // The pulsing dot marks speech in progress, so it belongs to the bar rather
+    // than to the button: pause has to stop it, and pause leaves the button
+    // looking like play again.
+    var bar = document.getElementById('tts-reader-bar');
+    if (bar) bar.classList.toggle('tts-bar-playing', state === 'playing');
   }
 
   function updateStatus() {
@@ -768,6 +773,14 @@
 
     var left = document.createElement('div');
     left.className = 'tts-group';
+
+    // Purely decorative, so it is hidden from the accessibility tree: the
+    // playing state already reaches a screen reader through the play button's
+    // label and the live region.
+    var dot = document.createElement('span');
+    dot.className = 'tts-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    left.appendChild(dot);
 
     var play = document.createElement('button');
     play.id = 'tts-play';
@@ -861,6 +874,21 @@
     document.body.appendChild(bar);
     document.body.classList.add('tts-reader-active');
     syncBarPadding();
+
+    /*
+     * Trigger the slide-in on the NEXT animation frame.
+     *
+     * Adding the class in this same frame would not animate: the browser has
+     * not recalculated style between appendChild and the class landing, so
+     * there is no "before" state to transition from and the bar would simply
+     * appear. rAF gives it that frame. Measuring for syncBarPadding above is
+     * unaffected — transforms do not change layout metrics.
+     */
+    if (window.requestAnimationFrame) {
+      window.requestAnimationFrame(function () { bar.classList.add('tts-bar-in'); });
+    } else {
+      bar.classList.add('tts-bar-in');
+    }
   }
 
   /*
