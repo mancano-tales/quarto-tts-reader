@@ -3,6 +3,26 @@
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
+## 2026-07-27 15:20 — v2.0.1: o teste que provava a v2.0.0 não provava nada
+
+Correção do commit anterior, feita por outro agente na mesma tarde. Sem mudança funcional: o Lua, o JS e o CSS fazem exatamente o que faziam às 15:13.
+
+**O teste da v2.0.0 era vazio, e a entrada anterior afirma uma verificação que não aconteceu.** Aquele commit inverteu o default de `tts-reader-enabled` para `true` no `tts-reader.lua` e registrou ter verificado "injeção dos ativos com render nos dois sentidos da flag (2 tags sem flag, 0 com kill switch)". Só que o `example.qmd` continuou declarando `tts-reader-enabled: true` no próprio front matter — então o primeiro render dava `2` **por causa da flag no documento**, não por causa do default novo. O teste teria passado idêntico se o Lua tivesse continuado em `false`: ele não podia falhar, e portanto não media nada. A flag saiu do exemplo, com comentário no lugar explicando por que não deve voltar, e a § "Verificação obrigatória" do `CLAUDE.md` ganhou o aviso correspondente. A entrada da v2.0.0 fica como está — histórico não se reescreve —, e esta a corrige.
+
+**Três documentos ainda descreviam a extensão anterior.** O comentário de cabeçalho do `tts-reader.lua` dizia "defaulting to FALSE — the player is a drafting aid, not something to ship", contradizendo o código quinze linhas abaixo. A seção "Estado atual" do `CLAUDE.md` — que se declara "a única fonte de verdade sobre a concepção ATUAL" — abria dizendo que a extensão é "ferramenta de escrita, não recurso de publicação". E o rótulo "Dois guardas invioláveis" ficou impreciso: `is_format('html:js')` continua sendo guarda, mas a flag virou interruptor, e o que precisa ser protegido nela mudou de sentido. Passa a ser: a flag **nunca pode ser removida** (é o único jeito de desativar um filtro já registrado) e **falha aberta** — qualquer valor que não seja `false`/`no`/`0` liga o player, para que um erro de digitação no YAML não mate a leitura em silêncio.
+
+**O hard link `AGENTS.md` ↔ `CLAUDE.md` estava quebrado.** Os dois arquivos tinham inodes distintos (`3940649674365427` e `5066549581208040`) com conteúdo idêntico: em algum momento alguém copiou em vez de editar o original, e a partir daí eram dois arquivos que só por acaso concordavam. Refeito com `mklink /h`. Vale registrar que **não há hook conferindo isso**: `core.hooksPath` está vazio e `.git/hooks/` só tem `.sample` — a sincronia depende de disciplina, e já falhou uma vez.
+
+**Consequência fora deste repositório, agora registrada.** Com o default `true`, o `tools/publish.ps1` da dissertação — que hoje não passa flag nenhuma — passa a publicar o player no site. Item novo em Pendente no `TODO.md`, aguardando decisão do autor; exige sessão própria naquele repositório.
+
+**Verificado**: `node --check`; render sem flag → 2 (agora provando o default, com o exemplo sem flag); render com `-M tts-reader-enabled=false` → 0; versão 2.0.1 no `_extension.yml` e no `tts-reader.lua`; `AGENTS.md` e `CLAUDE.md` com o mesmo inode. **Não verificado**: nada de comportamento de áudio, como sempre.
+
+**Metadados de Execução**:
+- **Data/Hora**: 2026-07-27 15:20 (Horário Local)
+- **Agente**: Claude Code / Claude Opus 5 / VS Code
+- **Mensagem do Commit**: "fix(v2.0.1): teste do default era vazio, documentos contradiziam o codigo, hard link quebrado"
+- **Arquivos afetados**: example.qmd, _extensions/tts-reader/tts-reader.lua, _extensions/tts-reader/_extension.yml, CLAUDE.md, AGENTS.md, TODO.md, NEWS.md
+
 ## 2026-07-27 15:13 — v2.0.0: default passa a TRUE, kill switch por flag, redefinição de público
 
 Mudança estrutural de concepção e superfície pública. A versão 2.0.0 altera o comportamento padrão do filtro Lua (`tts-reader.lua`): registrar o filtro em `filters: - tts-reader` agora habilita o player por padrão em saídas HTML (`quarto.doc.is_format('html:js')`).

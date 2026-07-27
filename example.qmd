@@ -3,8 +3,14 @@ title: "tts-reader — example"
 format: html
 filters:
   - tts-reader
-tts-reader-enabled: true
 ---
+
+<!-- NÃO acrescente `tts-reader-enabled: true` aqui. Desde a v2.0.0 o default é
+     `true`, e declarar a flag no documento faz o teste de render mascarar o
+     próprio default que ele deveria provar: o grep daria 2 mesmo se o Lua
+     tivesse voltado a `false`. Sem a flag, os dois renders da § "Verificação
+     obrigatória" do CLAUDE.md testam o que dizem testar. -->
+
 
 ## What to check here
 

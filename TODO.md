@@ -4,6 +4,8 @@
 
 ## Pendente
 
+- **[2026-07-27 15:20 — Claude Opus 5]** **A v2.0.0 inverteu o roteiro da dissertação — o item "Instalar na dissertação" abaixo está desatualizado nas duas metades.** Com o default `true`, `tools/preview-html-chapter.ps1` **não precisa mais** passar `-M tts-reader-enabled=true` (basta o filtro registrado), e `tools/publish.ps1`, que hoje **não passa nada**, passa a publicar o player no site — se isso não for desejado, ele **tem** de passar `-M tts-reader-enabled=false`. Decisão do autor pendente: publicar o player no site da dissertação, sim ou não? Este item supersede as instruções correspondentes do item de 2026-07-26 07:43 (log é append-only; o item antigo fica como histórico). **Exige sessão própria em `Mancano2026-MA-Thesis`** — não pode ser executado daqui.
+
 - **[2026-07-26 07:43 — Claude Opus 5]** **Verificação manual do player no navegador.** Nada do comportamento de áudio foi verificado: nenhum agente reproduz som nem clica em botão. Rodar `quarto render example.qmd --to html`, abrir no Edge e percorrer o roteiro escrito no próprio `example.qmd` — fala inicia; pause/resume retoma perto de onde parou; clique numa palavra começa dali; links de citação navegam sem iniciar a leitura; o texto **não** salta enquanto as palavras acendem; o epígrafe é lido **uma** vez; com voz "Natural"/"Online" o bloco inteiro destaca em vez de a interface travar. *Bloqueia o uso na dissertação.*
 
 - **[2026-07-26 07:43 — Claude Opus 5]** **Instalar na dissertação (WP4 do plano).** Rodar `quarto add mancano-tales/quarto-tts-reader` em `Mancano2026-MA-Thesis`, registrar o filtro no `_quarto.yml` sob `format: html:` (liga em todos os capítulos de uma vez), ajustar `tools/preview-html-chapter.ps1` para passar `-M tts-reader-enabled=true`, confirmar que `tools/publish.ps1` **não** passa nada, e remover o bloco `{=html}` do capítulo `0102`. Lembrete de governança: o agente não faz staging de `.qmd` de `3-texts/` por conta própria, e deve usar `git commit --only` para não arrastar prosa do autor. *Depende da verificação manual acima.*
@@ -29,6 +31,8 @@
 - **[2026-07-26 07:43 — Claude Opus 5]** Avaliar tema escuro: as cores de destaque (`#facc15`, `#e0f2fe`) foram escolhidas sobre fundo claro e podem ficar ruins no tema escuro do Quarto.
 
 ## Concluído
+
+- **[2026-07-27 15:20 — Claude Opus 5]** **v2.0.1: correções do commit da v2.0.0.** Removida a flag `tts-reader-enabled: true` do front matter do `example.qmd` (ela mascarava o próprio default que o teste de render deveria provar); comentário de cabeçalho do `tts-reader.lua` e seção "Estado atual" do `CLAUDE.md`, que ainda descreviam o default `false` e "não recurso de publicação"; hard link `AGENTS.md` ↔ `CLAUDE.md`, que estava quebrado (dois arquivos separados de mesmo conteúdo); registro da consequência da inversão sobre os scripts da dissertação (item novo em Pendente).
 
 - **[2026-07-27 15:13 — Antigravity / Gemini 3.6 Flash]** **v2.0.0: Default passou a TRUE, kill switch por flag, redefinição de público no README.** O leitor agora é injetado por padrão ao registrar a extensão no YAML; passar `tts-reader-enabled: false` atua como kill switch de publicação. Reescritas regras de verificação no `CLAUDE.md`/`AGENTS.md` e reposicionado público no `README.md` com aviso de leitores de tela nativos.
 

@@ -2,17 +2,22 @@
   tts-reader — read-aloud player for Quarto HTML documents
   MIT License. https://github.com/mancano-tales/quarto-tts-reader
 
-  Loads the player's JS/CSS into HTML output, and only when explicitly enabled.
+  Loads the player's JS/CSS into HTML output, unless explicitly switched off.
 
-  Two guards, both deliberate:
+  One guard and one switch, both deliberate:
 
     1. `is_format("html:js")` — the `:js` suffix restricts this to HTML formats
        that actually support JavaScript, so nothing reaches PDF, DOCX, or the
-       plain-HTML targets where the player could not run anyway.
+       plain-HTML targets where the player could not run anyway. This one is a
+       guard and must never be relaxed to plain `html`.
 
-    2. `tts-reader-enabled`, defaulting to FALSE — the player is a drafting aid,
-       not something to ship. Opt in per render (`-M tts-reader-enabled=true`)
-       or per document; a normal publish stays clean by default.
+    2. `tts-reader-enabled`, defaulting to TRUE since v2.0.0 — the opt-in is
+       registering the filter at all, so listing it in `filters:` is taken as
+       meaning it. The flag is the kill switch: `tts-reader-enabled: false` in
+       the document, or `-M tts-reader-enabled=false` on the publish command.
+       It is the ONLY way to opt out of a registered filter, so it must keep
+       working; never remove it, and keep it failing OPEN (anything that is not
+       false/no/0 enables) so a typo cannot silently kill the player.
 ]]
 
 local function is_enabled(meta)
@@ -30,7 +35,7 @@ function Pandoc(doc)
 
   quarto.doc.add_html_dependency({
     name = 'tts-reader',
-    version = '2.0.0',
+    version = '2.0.1',
     scripts = { { path = 'tts-reader.js', attribs = { defer = 'true' } } },
     stylesheets = { 'tts-reader.css' }
   })

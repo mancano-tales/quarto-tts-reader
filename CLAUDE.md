@@ -9,16 +9,16 @@
 
 ---
 
-## Estado atual do projeto (versão de 2026-07-26)
+## Estado atual do projeto (versão de 2026-07-27)
 
 > **Esta seção é a única fonte de verdade sobre a concepção ATUAL da extensão.** Mudanças de desenho são registradas aqui com a data. Qualquer coisa em conflito com esta seção (entradas antigas do `NEWS.md`, comentários velhos) é documentação histórica, não orientação.
 
-- **O que é**: extensão Quarto que injeta um player de leitura em voz alta (Web Speech API) em documentos HTML. Serve para o autor **ouvir o próprio texto enquanto o edita** — é ferramenta de escrita, não recurso de publicação.
+- **O que é**: extensão Quarto que injeta um player de leitura em voz alta (Web Speech API) em documentos HTML. Nasceu para o autor **ouvir o próprio texto enquanto o edita**, e desde a v2.0.0 também se destina ao leitor do documento publicado: leitor disléxico, leitor em segunda língua, quem tem fadiga visual ou déficit de atenção, e quem simplesmente prefere ouvir. **Não é substituto de leitor de tela** — para quem usa NVDA/JAWS o player só acrescenta um segundo áudio por cima; esse público não é o alvo, e o `README.md` diz isso explicitamente.
 - **Procedência**: o código nasceu como bloco `{=html}` dentro de um capítulo da dissertação de mestrado do autor (`Mancano2026-MA-Thesis`, capítulo `0102`) e foi extraído para cá em 2026-07-26. Passou por quatro rodadas de auditoria cruzada entre agentes de IA antes da extração; os defeitos encontrados estão registrados no `NEWS.md` e a maioria virou comentário explicativo no ponto do código onde importa. **Não "limpe" esses comentários** — eles são a razão de o código não ter voltado a quebrar.
 - **Superfície pública**: uma flag de metadado, `tts-reader-enabled` (default **`true`** desde a v2.0.0; passe `false` como kill switch de publicação). Nada mais. A extensão não altera o documento; só carrega JS e CSS.
-- **Dois guardas invioláveis** (ambos em `tts-reader.lua`):
-  1. `quarto.doc.is_format('html:js')` — o sufixo `:js` é deliberado e **verificado**: restringe a formatos HTML que suportam JavaScript. Trocar por `'html'` é regressão (uma auditoria externa sugeriu isso em 2026-07-26 alegando que `html:js` seria inválido; é falso, o identificador aparece no próprio Lua que o Quarto instala).
-  2. `tts-reader-enabled` com default `true` (kill switch quando `false`) — a extensão é carregada por padrão. Para desativar em um site publicado, passe `tts-reader-enabled: false` ou `-M tts-reader-enabled=false`.
+- **Um guarda e um interruptor, ambos invioláveis** (os dois em `tts-reader.lua`):
+  1. **Guarda**: `quarto.doc.is_format('html:js')` — o sufixo `:js` é deliberado e **verificado**: restringe a formatos HTML que suportam JavaScript. Trocar por `'html'` é regressão (uma auditoria externa sugeriu isso em 2026-07-26 alegando que `html:js` seria inválido; é falso, o identificador aparece no próprio Lua que o Quarto instala).
+  2. **Interruptor**: `tts-reader-enabled`, default `true` desde a v2.0.0. O opt-in passou a ser registrar o filtro em `filters:`; a flag é o **kill switch** e é o **único** jeito de desativar um filtro já registrado. Duas consequências que nenhuma edição futura pode desfazer: a flag **nunca pode ser removida**, e ela **falha aberta** — qualquer valor que não seja `false`/`no`/`0` liga o player, para que um erro de digitação no YAML não mate a leitura em silêncio.
 - **Regra de layout do CSS**: as classes de destaque são ligadas e desligadas palavra a palavra, muitas vezes por segundo. Elas **não podem alterar a caixa da palavra** — nada de `padding` horizontal, margem, borda ou `font-weight` mais pesado, que refluem a linha e fazem o texto saltar enquanto se lê. Use `box-shadow`, que pinta fora da caixa sem participar do layout.
 - **Preparação sob demanda**: as palavras são envolvidas em `<span>` quando o bloco é necessário (ponteiro sobre ele, clique, ou a leitura chegando nele), nunca no carregamento. **Não substitua isso por `MutationObserver`**: envolver palavras é ela mesma uma mutação do DOM, e o observer dispararia com as próprias escritas, em loop.
 - **Proibições estritas**:
@@ -43,7 +43,9 @@ quarto render example.qmd --to html -M tts-reader-enabled=false      # kill swit
 grep -c '<script[^>]*tts-reader\|<link[^>]*tts-reader' example.html   # deve dar 0
 ```
 
-O segundo par é o que protege sites publicados. Se ele der qualquer coisa diferente de `0`, **não commite** — o guard quebrou.
+O segundo par é o que protege sites publicados. Se ele der qualquer coisa diferente de `0`, **não commite** — o kill switch quebrou.
+
+> 🚨 **`example.qmd` NÃO pode declarar `tts-reader-enabled` no front matter.** Isso já aconteceu: o commit da v2.0.0 inverteu o default no Lua e deixou `tts-reader-enabled: true` no exemplo, e o primeiro render passou a dar `2` **por causa da flag no documento, não por causa do default** — o teste teria passado igual se o Lua tivesse continuado em `false`. Um teste que não pode falhar não é teste. Sem a flag no exemplo, o primeiro render prova o default e o segundo prova o kill switch.
 
 ## O que agentes NÃO conseguem verificar
 
