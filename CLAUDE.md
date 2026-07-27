@@ -1,7 +1,7 @@
 ﻿# CLAUDE.md / AGENTS.md — quarto-tts-reader
 
 > 🚨 **CRITICAL AGENT RULES (COVENANT) — READ FIRST:**
-> - **Regra sobre Hard Links**: Agentes de IA **NÃO devem perder tempo** testando, auditando ou recriando hard links manualmente (mklink). O script de auto-cura automatizado (alidate-governance.R / setup) cuida disso sozinho. Foque estritamente no objetivo principal da tarefa.
+>> - **HARD LINK RULE:** AI Agents **MUST NOT waste time** testing, auditing, or manually recreating hard links (mklink). Automated governance scripts (alidate-governance.R / setup) handle this automatically in the background. Focus strictly on your primary task.
 > - **RULE 1:** Every commit is audited. Never commit without the verification of § "Verificação obrigatória" passing.
 > - **RULE 2:** Any change to `_extensions/` REQUIRES an entry in `NEWS.md` **in the same commit**.
 > - **RULE 3:** Never edit `AGENTS.md` by hand — it is a mirror of this file. Edit `CLAUDE.md` only.
@@ -118,4 +118,5 @@ quarto-tts-reader/
 **Gotcha verificado (2026-07-26): `example.qmd` tem de ficar na raiz do repositório.** Numa subpasta, sem `_quarto.yml`, o Quarto trata a pasta do documento como raiz do projeto, não encontra `_extensions/` e falha com *"Could not find executable …/tts-reader"*, interpretando o nome do filtro como caminho de executável. É a mesma estrutura das extensões oficiais (`quarto-ext/*`).
 
 Sem build, sem dependências, sem gerenciador de pacotes. JavaScript puro (ES5-compatível, sem transpilação), Lua para o filtro, Quarto ≥ 1.4.
+
 
