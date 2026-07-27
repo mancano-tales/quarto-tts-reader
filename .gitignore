@@ -4,8 +4,11 @@
 /_book/
 /_freeze/
 *_files/
-example/*.html
-example/example_files/
+# example.qmd vive na RAIZ do repositorio (ver o gotcha no CLAUDE.md), entao o
+# artefato gerado e /example.html. As regras antigas apontavam para example/,
+# a subpasta que deixou de existir, e o arquivo ficou rastreavel sem que
+# ninguem notasse.
+/example.html
 
 # OS junk
 .DS_Store
@@ -16,3 +19,5 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+/.luarc.json
