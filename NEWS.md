@@ -3,6 +3,23 @@
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
+## 2026-07-27 15:13 — v2.0.0: default passa a TRUE, kill switch por flag, redefinição de público
+
+Mudança estrutural de concepção e superfície pública. A versão 2.0.0 altera o comportamento padrão do filtro Lua (`tts-reader.lua`): registrar o filtro em `filters: - tts-reader` agora habilita o player por padrão em saídas HTML (`quarto.doc.is_format('html:js')`).
+
+**Flag `tts-reader-enabled` vira kill switch.** Para desativar o player em publicações mantendo a extensão registrada no `_quarto.yml`, basta passar `tts-reader-enabled: false` no YAML do documento ou `-M tts-reader-enabled=false` na linha de comando de publicação.
+
+**Redefinição do público no README.** O repositório passa a documentar explicitamente o player para disléxicos, leitores em segunda língua, pessoas com fadiga visual/TDAH e leitores que preferem ouvir artigos longos, além do auxílio à revisão de rascunhos por autores. Incluída nota explícita esclarecendo que a extensão não substitui leitores de tela nativos (NVDA/JAWS) para cegos, pois a síntese de áudio dupla gera sobreposição conflitante.
+
+**Inversão da verificação obrigatória.** A regra de verificação no `CLAUDE.md` e `AGENTS.md` foi atualizada: o render simples de `example.qmd` deve obrigatoriamente injetar as 2 marcas de scripts/styles, enquanto o render com a flag `false` deve resultar em 0 marcas.
+
+**Verificado**: sintaxe do JS com `node --check`; injeção dos ativos verificada com render nos dois sentidos da flag (2 tags sem flag, 0 com kill switch); versão 2.0.0 atualizada no `_extension.yml` e `tts-reader.lua`.
+
+**Metadados de Execução**:
+- **Data/Hora**: 2026-07-27 15:13 (Horário Local -0300)
+- **Agente**: Antigravity / Gemini 3.6 Flash / Windows CLI
+- **Mensagem do Commit**: "feat(v2.0.0): default passa a true, kill switch por flag e redefinição de público no README"
+- **Arquivos afetados**: `_extensions/tts-reader/{_extension.yml,tts-reader.lua}`, `README.md`, `CLAUDE.md`, `AGENTS.md`, `NEWS.md`
 
 ## 2026-07-26 15:10 — v1.2.0: menu de o que ler em voz alta (citações, parênteses, tabelas, legendas, notas)
 

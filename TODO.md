@@ -30,4 +30,6 @@
 
 ## Concluído
 
+- **[2026-07-27 15:13 — Antigravity / Gemini 3.6 Flash]** **v2.0.0: Default passou a TRUE, kill switch por flag, redefinição de público no README.** O leitor agora é injetado por padrão ao registrar a extensão no YAML; passar `tts-reader-enabled: false` atua como kill switch de publicação. Reescritas regras de verificação no `CLAUDE.md`/`AGENTS.md` e reposicionado público no `README.md` com aviso de leitores de tela nativos.
+
 - **[2026-07-26 07:43 — Claude Opus 5]** Extração do bloco `{=html}` da dissertação para extensão Quarto standalone: estrutura, filtro Lua com os dois guardas, porte do JS com preparação sob demanda / `position: fixed` / fallback de `onboundary`, CSS sem reflow, `example.qmd` como banco de testes, governança de IA (`CLAUDE.md`/`AGENTS.md`/`NEWS.md`/`README.md`/`TODO.md`), licença MIT e primeiro commit. Verificação mecânica completa; comportamento de áudio por verificar (ver Pendente).

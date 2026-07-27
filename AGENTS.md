@@ -15,10 +15,10 @@
 
 - **O que é**: extensão Quarto que injeta um player de leitura em voz alta (Web Speech API) em documentos HTML. Serve para o autor **ouvir o próprio texto enquanto o edita** — é ferramenta de escrita, não recurso de publicação.
 - **Procedência**: o código nasceu como bloco `{=html}` dentro de um capítulo da dissertação de mestrado do autor (`Mancano2026-MA-Thesis`, capítulo `0102`) e foi extraído para cá em 2026-07-26. Passou por quatro rodadas de auditoria cruzada entre agentes de IA antes da extração; os defeitos encontrados estão registrados no `NEWS.md` e a maioria virou comentário explicativo no ponto do código onde importa. **Não "limpe" esses comentários** — eles são a razão de o código não ter voltado a quebrar.
-- **Superfície pública**: uma flag de metadado, `tts-reader-enabled` (default **`false`**). Nada mais. A extensão não altera o documento; só carrega JS e CSS.
+- **Superfície pública**: uma flag de metadado, `tts-reader-enabled` (default **`true`** desde a v2.0.0; passe `false` como kill switch de publicação). Nada mais. A extensão não altera o documento; só carrega JS e CSS.
 - **Dois guardas invioláveis** (ambos em `tts-reader.lua`):
   1. `quarto.doc.is_format('html:js')` — o sufixo `:js` é deliberado e **verificado**: restringe a formatos HTML que suportam JavaScript. Trocar por `'html'` é regressão (uma auditoria externa sugeriu isso em 2026-07-26 alegando que `html:js` seria inválido; é falso, o identificador aparece no próprio Lua que o Quarto instala).
-  2. `tts-reader-enabled` com default `false` — o player é auxílio de rascunho e **não pode vazar para um site publicado**. Nunca inverta esse default.
+  2. `tts-reader-enabled` com default `true` (kill switch quando `false`) — a extensão é carregada por padrão. Para desativar em um site publicado, passe `tts-reader-enabled: false` ou `-M tts-reader-enabled=false`.
 - **Regra de layout do CSS**: as classes de destaque são ligadas e desligadas palavra a palavra, muitas vezes por segundo. Elas **não podem alterar a caixa da palavra** — nada de `padding` horizontal, margem, borda ou `font-weight` mais pesado, que refluem a linha e fazem o texto saltar enquanto se lê. Use `box-shadow`, que pinta fora da caixa sem participar do layout.
 - **Preparação sob demanda**: as palavras são envolvidas em `<span>` quando o bloco é necessário (ponteiro sobre ele, clique, ou a leitura chegando nele), nunca no carregamento. **Não substitua isso por `MutationObserver`**: envolver palavras é ela mesma uma mutação do DOM, e o observer dispararia com as próprias escritas, em loop.
 - **Proibições estritas**:
@@ -36,10 +36,10 @@ Mecânica, e não negociável:
 ```bash
 node --check _extensions/tts-reader/tts-reader.js     # sintaxe do JS
 
-quarto render example.qmd --to html                    # flag ON  (o exemplo traz true)
+quarto render example.qmd --to html                    # flag ON  (default true no v2.0.0)
 grep -c '<script[^>]*tts-reader\|<link[^>]*tts-reader' example.html   # deve dar 2
 
-quarto render example.qmd --to html -M tts-reader-enabled=false
+quarto render example.qmd --to html -M tts-reader-enabled=false      # kill switch
 grep -c '<script[^>]*tts-reader\|<link[^>]*tts-reader' example.html   # deve dar 0
 ```
 

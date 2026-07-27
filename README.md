@@ -4,11 +4,17 @@ A read-aloud player for Quarto HTML documents. It speaks the document with the
 browser's built-in speech synthesis, highlights the word and sentence being
 read, and lets you click any word to start from exactly there.
 
-It was built for one purpose: **listening to your own prose while you edit it.**
-Hearing a paragraph read back is an unreasonably effective way to catch clumsy
-sentences that the eye slides over. It is a drafting aid, not a publishing
-feature, and it is disabled by default so that it never reaches a published
-site by accident.
+It is designed for **auditory reading and text review**: helping authors listen
+to their own prose while drafting, as well as assisting dyslexic readers,
+second-language learners, readers with visual fatigue or ADHD, and anyone who
+prefers listening to long-form articles.
+
+> [!NOTE]
+> **Screen Readers Notice**: This extension is not a replacement for native
+> screen readers (such as NVDA or JAWS) used by visually impaired users.
+> Synthesizing speech over a running screen reader creates conflicting dual
+> audio. Users of dedicated screen readers should keep their assistive software
+> active instead.
 
 ## Install
 
@@ -24,7 +30,7 @@ quarto update mancano-tales/quarto-tts-reader
 
 ## Use
 
-Add the filter and turn it on:
+Add the filter to your document:
 
 ```yaml
 ---
@@ -32,33 +38,28 @@ title: "My chapter"
 format: html
 filters:
   - tts-reader
-tts-reader-enabled: true
 ---
 ```
 
-Then `quarto preview` and edit: the page re-renders on every save, and the
-player is there.
+Starting in v2.0.0, registering `tts-reader` in `filters:` enables the player by default in HTML output.
 
-### Keeping it out of published output
+### Disabling on publication (Kill Switch)
 
-`tts-reader-enabled` defaults to **`false`**. The recommended setup is to leave
-it off in the project's `_quarto.yml` and switch it on only for your own
-preview renders:
+If you register `tts-reader` globally in `_quarto.yml` but want to exclude the player from a published site, use `tts-reader-enabled: false` or pass the command-line flag `-M tts-reader-enabled=false`:
 
 ```yaml
-# _quarto.yml — filter always registered, player off by default
-format:
-  html:
-    filters:
-      - tts-reader
+---
+title: "Published Chapter"
+format: html
+filters:
+  - tts-reader
+tts-reader-enabled: false
+---
 ```
 
 ```bash
-# your drafting command: player on
-quarto render chapter.qmd --to html -M tts-reader-enabled=true
-
-# your publish command: unchanged, and clean
-quarto publish
+# publish command with kill switch:
+quarto render chapter.qmd --to html -M tts-reader-enabled=false
 ```
 
 The filter also refuses to load outside HTML formats that support JavaScript,

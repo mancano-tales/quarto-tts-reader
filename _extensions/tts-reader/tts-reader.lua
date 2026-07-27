@@ -17,11 +17,11 @@
 
 local function is_enabled(meta)
   local flag = meta['tts-reader-enabled']
-  if flag == nil then return false end
+  if flag == nil then return true end
   -- Booleans arrive as pandoc.Bool; -M on the command line arrives as a string.
   -- stringify handles both, so we do not have to care which one this is.
   local value = pandoc.utils.stringify(flag):lower()
-  return value == 'true' or value == 'yes' or value == '1'
+  return value ~= 'false' and value ~= 'no' and value ~= '0'
 end
 
 function Pandoc(doc)
@@ -30,7 +30,7 @@ function Pandoc(doc)
 
   quarto.doc.add_html_dependency({
     name = 'tts-reader',
-    version = '1.2.0',
+    version = '2.0.0',
     scripts = { { path = 'tts-reader.js', attribs = { defer = 'true' } } },
     stylesheets = { 'tts-reader.css' }
   })
