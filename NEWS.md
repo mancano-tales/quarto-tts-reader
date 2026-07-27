@@ -3,6 +3,30 @@
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
+## 2026-07-27 15:31 — v2.1.0: ler a partir de qualquer ponto sem mouse
+
+Até aqui a barra era operável por teclado, mas não havia como escolher **onde** começar a ler sem clicar. Era a lacuna que sobrava do posicionamento da v2.0.0: um player oferecido ao leitor do documento publicado que exige mouse para escolher o parágrafo serve mal justamente a parte do público a que se dirige.
+
+**O cursor de leitura é uma parada de Tab, não milhares.** Os blocos legíveis recebem `tabindex="-1"` e apenas um — o cursor — carrega `tabindex="0"`, no padrão de *roving tabindex*. `Tab` entra na prosa uma vez; `↑`/`↓` movem o cursor entre parágrafos enquanto ele tem foco; `Enter` começa a ler dali. A alternativa intuitiva, tornar cada palavra ou cada bloco focável, acrescentaria milhares de paradas de Tab a um capítulo e tornaria a página impraticável exatamente para quem navega por teclado — o remédio seria pior que o problema, e o `TODO.md` já registrava isso desde 2026-07-26.
+
+**A escolha do modificador não é cosmética.** Atalhos de letra única (`j`/`k`/`l`, o costume em aplicativos de leitura) são **engolidos** pelo NVDA e pelo JAWS em modo de navegação, onde letras são teclas de navegação rápida: o handler nunca vê o evento, e o atalho seria tecla morta para parte do público-alvo. Daí `Alt`. E anterior/próximo é `Alt+Shift+←/→`, não `Alt+←/→`, porque **`Alt+←` é o Voltar do navegador** no Chrome, no Edge e no Firefox — o atalho óbvio navegaria para fora da página no meio da frase. Os combos usam `e.code` e não `e.key`, porque `Alt` reescreve `e.key` em vários layouts (`Alt+P` vira `π` no macOS) enquanto `code` nomeia a tecla física.
+
+**As setas nuas só agem com um bloco em foco**, que é o contrato de widget composto: o leitor deliberadamente entrou na prosa com Tab, então ali as setas pertencem ao cursor, e em qualquer outro lugar pertencem à página. Elas chamam `preventDefault()` — sem isso o bloco entra em vista *e* a página rola junto, movendo duas vezes por tecla.
+
+**Região `aria-live` separada, e deliberadamente pobre.** O `#tts-status` mostra "12/318" e muda a cada bloco; ligá-lo a uma região viva daria uma voz se interrompendo a cada poucos segundos. O anúncio novo é um `<div>` oculto que recebe só mudanças de estado que o leitor causou — lendo, pausado, parado, velocidade —, porque essas não têm nenhum outro sinal audível ou de foco. O ocultamento usa `clip-path`, não `display:none` nem `visibility:hidden`: os dois últimos tiram o elemento da árvore de acessibilidade, e uma região viva fora da árvore não anuncia nada.
+
+**O cursor acompanha a voz sem roubar o foco.** Cada bloco que começa a ser falado move o cursor silenciosamente, então pausar e usar as setas continua de onde a escuta parou, e não de onde o Tab foi deixado. Mover o foco de verdade a cada bloco arrastaria a página e faria o leitor de tela ler o parágrafo por cima da fala que já o estava lendo.
+
+Também nesta versão: `Esc` fecha o menu ⚙ **devolvendo o foco ao botão ⚙** (antes só o clique fora fechava, e dispensar o menu pelo teclado largava o cursor no topo do documento), e o anel de foco do cursor usa `outline`, que pinta fora da caixa e não reflui o parágrafo — a mesma razão pela qual os destaques usam `box-shadow`.
+
+**Verificado**: `node --check`; render sem flag → 2; render com `-M tts-reader-enabled=false` → 0; presença do `#tts-announcer` e do listener de `keydown` no bundle. **Não verificado, e é a maior parte**: nada de comportamento de teclado real — se o anel de foco aparece, se `Tab` para uma vez só, se `Alt+Shift+←` de fato não volta no histórico, se o `Esc` devolve o foco, se o leitor de tela anuncia os estados sem atropelar a fala. Isso é roteiro de humano, escrito na § "Operação por teclado" do `example.qmd`.
+
+**Metadados de Execução**:
+- **Data/Hora**: 2026-07-27 15:31 (Horário Local)
+- **Agente**: Claude Code / Claude Opus 5 / VS Code
+- **Mensagem do Commit**: "feat(v2.1.0): cursor de leitura por teclado, atalhos Alt e regiao aria-live"
+- **Arquivos afetados**: _extensions/tts-reader/tts-reader.js, _extensions/tts-reader/tts-reader.css, _extensions/tts-reader/tts-reader.lua, _extensions/tts-reader/_extension.yml, README.md, example.qmd, NEWS.md, TODO.md
+
 ## 2026-07-27 15:20 — v2.0.1: o teste que provava a v2.0.0 não provava nada
 
 Correção do commit anterior, feita por outro agente na mesma tarde. Sem mudança funcional: o Lua, o JS e o CSS fazem exatamente o que faziam às 15:13.

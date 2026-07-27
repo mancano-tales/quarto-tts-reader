@@ -76,3 +76,32 @@ unavailable with them. The expected behaviour is not silence and not a frozen
 interface: after about 800ms the whole block should shade instead, and reading
 should continue normally. Verify that it does, and that reading does not stall,
 loop on one block, or skip ahead.
+
+### Operação por teclado (v2.1.0)
+
+Nada aqui exige mouse. Com a página recém-carregada, pressione `Tab` até o foco
+entrar no corpo do texto: deve aparecer **um** anel de foco em torno de um
+parágrafo — o cursor de leitura. Confira que ele é **uma** parada de Tab e não
+uma por parágrafo (pressionar `Tab` de novo tem de sair da prosa, seguindo a
+ordem do documento: o próximo link, nota ou botão que vier depois; a barra de
+controles fica no fim do `<body>`, então ela é a última parada, não a próxima).
+
+Com o cursor focado, `↓` e `↑` movem entre parágrafos. Confira que a página
+**não** rola duas vezes por tecla — o bloco entra em vista e nada mais. Pressione
+`Enter`: a leitura tem de começar naquele parágrafo, não no topo do documento.
+
+Depois teste os atalhos com o foco em qualquer lugar fora dos seletores da
+barra:
+
+- `Alt+P` alterna play/pause.
+- `Alt+Shift+→` e `Alt+Shift+←` avançam e voltam um bloco. **Confira que a
+  página não navega para trás no histórico** — é por isso que o atalho não é
+  `Alt+←`, que é o Voltar do navegador.
+- `Alt+.` para a leitura e limpa os grifos.
+- `Alt+↑` e `Alt+↓` mudam a velocidade sem perder o lugar.
+- Com o menu ⚙ aberto, `Esc` fecha e o foco volta para o botão ⚙ — confira que
+  o foco volta mesmo, e não para o topo da página.
+
+Por fim, clique numa palavra no meio do documento, pressione `Alt+P` para pausar
+e então `Tab` até a prosa: o cursor de leitura tem de estar no parágrafo que
+estava sendo lido, não no primeiro do documento.

@@ -81,6 +81,34 @@ clicking a link navigates, it does not start the reader. Footnote reference
 numbers are excluded from the spoken text, so you will not hear a stray digit
 read out mid-sentence.
 
+### Keyboard
+
+The whole player works without a mouse, including starting from a chosen point
+in the text.
+
+| Key | What it does |
+|---|---|
+| `Tab` into the text | Lands on the **reading cursor** — one stop for the whole document, not one per paragraph |
+| `↑` / `↓` | Move the cursor to the previous / next paragraph (only while the cursor holds focus) |
+| `Enter` | Start reading from the paragraph under the cursor |
+| `Alt` + `P` | Play / Pause |
+| `Alt` + `Shift` + `←` / `→` | Previous / next block |
+| `Alt` + `.` | Stop |
+| `Alt` + `↑` / `↓` | Faster / slower |
+| `Esc` | Close the ⚙ menu and return focus to its button |
+
+Two choices worth knowing about, because they are not the obvious ones. The
+shortcuts use `Alt` rather than bare letters (`j`/`k`/`l`) because NVDA and JAWS
+treat single letters as quick-navigation keys in browse mode and swallow them
+before a page ever sees them — bare-letter shortcuts would be dead keys for
+part of the intended audience. And previous/next is `Alt`+`Shift`+arrow rather
+than `Alt`+arrow because `Alt`+`←` is Back in Chrome, Edge and Firefox, which
+would navigate away from the page mid-sentence.
+
+The reading cursor is a single Tab stop by design: a chapter holds thousands of
+words and hundreds of paragraphs, and making each one focusable would bury the
+page under Tab stops for the people who navigate by keyboard.
+
 ## Known limitations
 
 **Word-level highlighting depends on the voice.** Browsers expose two kinds:

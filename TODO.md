@@ -32,6 +32,8 @@
 
 ## Concluído
 
+- **[2026-07-27 15:31 — Claude Opus 5]** **v2.1.0: operação por teclado.** Cursor de leitura por *roving tabindex* (uma parada de Tab no documento inteiro), `↑`/`↓` entre parágrafos e `Enter` para ler dali; atalhos `Alt+P`, `Alt+Shift+←/→`, `Alt+.`, `Alt+↑/↓`; `Esc` fecha o menu ⚙ devolvendo o foco; região `aria-live` separada só para mudanças de estado. Resolve o item Prospectivo de 2026-07-26 11:31 ("Iniciar leitura a partir do teclado"), respeitando a advertência dele de não usar `tabindex="0"` nas palavras. **Comportamento de teclado por verificar no navegador** — roteiro na § "Operação por teclado" do `example.qmd`.
+
 - **[2026-07-27 15:20 — Claude Opus 5]** **v2.0.1: correções do commit da v2.0.0.** Removida a flag `tts-reader-enabled: true` do front matter do `example.qmd` (ela mascarava o próprio default que o teste de render deveria provar); comentário de cabeçalho do `tts-reader.lua` e seção "Estado atual" do `CLAUDE.md`, que ainda descreviam o default `false` e "não recurso de publicação"; hard link `AGENTS.md` ↔ `CLAUDE.md`, que estava quebrado (dois arquivos separados de mesmo conteúdo); registro da consequência da inversão sobre os scripts da dissertação (item novo em Pendente).
 
 - **[2026-07-27 15:13 — Antigravity / Gemini 3.6 Flash]** **v2.0.0: Default passou a TRUE, kill switch por flag, redefinição de público no README.** O leitor agora é injetado por padrão ao registrar a extensão no YAML; passar `tts-reader-enabled: false` atua como kill switch de publicação. Reescritas regras de verificação no `CLAUDE.md`/`AGENTS.md` e reposicionado público no `README.md` com aviso de leitores de tela nativos.

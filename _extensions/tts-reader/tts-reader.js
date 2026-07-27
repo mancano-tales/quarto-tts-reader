@@ -218,6 +218,56 @@
     return out;
   }
 
+  /*
+   * The reading cursor: which block the keyboard is pointing at.
+   *
+   * It exists so the document can be read from an arbitrary point WITHOUT a
+   * mouse. Kept as a roving tabindex — exactly one block carries tabindex="0"
+   * and every other carries "-1" — because the obvious alternative, marking
+   * every word (or every block) focusable, would add thousands of Tab stops to
+   * a chapter and make the page unusable for the very people who navigate by
+   * keyboard. One stop for the whole prose; the arrows move it from there.
+   */
+  var keyboardBlockIndex = 0;
+
+  /*
+   * Say something to a screen reader without printing it on the page.
+   *
+   * DELIBERATELY not wired to #tts-status: that element shows "12/318" and
+   * changes at every block, which through a live region becomes a voice
+   * interrupting itself every few seconds. This one is only ever given state
+   * changes the reader caused — playing, paused, stopped, speed — because those
+   * have no other audible or focus-visible signal.
+   */
+  function announce(msg) {
+    var a = document.getElementById('tts-announcer');
+    if (a) a.textContent = msg;
+  }
+
+  function setKeyboardCursor(index, moveFocus) {
+    if (!blocks.length) return;
+    if (index < 0) index = 0;
+    if (index >= blocks.length) index = blocks.length - 1;
+    var previous = blocks[keyboardBlockIndex];
+    if (previous) previous.setAttribute('tabindex', '-1');
+    keyboardBlockIndex = index;
+    var el = blocks[index];
+    el.setAttribute('tabindex', '0');
+    if (moveFocus) {
+      // Focusing the block is what makes a screen reader read it, which is the
+      // whole point of moving the cursor. preventScroll is off: the reader has
+      // to see where the cursor went.
+      el.focus();
+    }
+  }
+
+  function focusedBlockIndex() {
+    var el = document.activeElement;
+    if (!el || !el.closest) return -1;
+    var block = el.closest(BLOCK_SELECTOR);
+    return block ? blocks.indexOf(block) : -1;
+  }
+
   function collectBlocks() {
     var root = document.querySelector('main') || document.body;
     var all = Array.prototype.slice.call(root.querySelectorAll(BLOCK_SELECTOR));
@@ -230,7 +280,11 @@
         return n.nodeValue && n.nodeValue.trim().length > 0;
       });
     });
-    blocks.forEach(function (el) { el.classList.add('tts-readable'); });
+    if (keyboardBlockIndex >= blocks.length) keyboardBlockIndex = 0;
+    blocks.forEach(function (el, idx) {
+      el.classList.add('tts-readable');
+      el.setAttribute('tabindex', idx === keyboardBlockIndex ? '0' : '-1');
+    });
   }
 
   /*
@@ -478,6 +532,12 @@
       // discomfort. Jump instead of animating when the reader asked for that.
       el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
       updateStatus();
+      // Drag the keyboard cursor along with the voice, but WITHOUT moving focus:
+      // stealing focus every few seconds would yank the page around and make a
+      // screen reader read the paragraph over the speech already reading it.
+      // Moving the cursor silently is what makes pause-then-arrow continue from
+      // where the listening stopped rather than from wherever Tab was left.
+      setKeyboardCursor(index, false);
       // If no word boundary arrives shortly, this voice does not report them
       // (typical of remote voices). Shade the whole block so the reader still
       // shows where it is instead of looking frozen.
@@ -606,10 +666,13 @@
       clearHandlers(activeUtterance);
       synth.cancel();
       setPlayButton('paused');
+      announce('Leitura pausada');
     } else if (isPaused) {
       isPaused = false;
+      announce('Retomando a leitura');
       speakBlock(currentIndex, lastCharIndex);
     } else {
+      announce('Lendo');
       startFrom(currentIndex, 0);
     }
   }
@@ -631,6 +694,7 @@
     sentenceEnd = -1;
     setPlayButton('idle');
     updateStatus();
+    announce('Leitura parada');
   }
 
   function restartHere() {
@@ -731,6 +795,19 @@
     right.appendChild(voice);
     right.appendChild(buildOptsMenu());
 
+    /*
+     * The live region. Visually hidden, never focusable, `polite` so it waits
+     * for a gap instead of cutting the screen reader off mid-word. It carries
+     * only state changes (see announce): the block counter next to it is
+     * deliberately NOT live.
+     */
+    var announcer = document.createElement('div');
+    announcer.id = 'tts-announcer';
+    announcer.className = 'tts-sr-only';
+    announcer.setAttribute('aria-live', 'polite');
+    announcer.setAttribute('aria-atomic', 'true');
+    bar.appendChild(announcer);
+
     bar.appendChild(left);
     bar.appendChild(right);
     document.body.appendChild(bar);
@@ -822,6 +899,19 @@
       toggle.setAttribute('aria-expanded', 'false');
     });
 
+    // Escape closes it too, and hands focus BACK to the ⚙ button. Without the
+    // focus return, dismissing the menu from the keyboard drops the caret at the
+    // top of the document and the reader has to Tab all the way back.
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      if (!wrap.classList.contains('tts-opts-open')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      wrap.classList.remove('tts-opts-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
+
     return wrap;
   }
 
@@ -898,7 +988,100 @@
     ensurePrepared(el);
     var word = e.target.closest('.tts-word');
     var offset = (word && el.contains(word)) ? (parseInt(word.dataset.offset, 10) || 0) : 0;
+    // A click also plants the reading cursor, so switching from mouse to
+    // keyboard mid-document continues from the paragraph just clicked.
+    setKeyboardCursor(index, false);
     startFrom(index, offset);
+  }
+
+  function isTypingTarget(el) {
+    if (!el || !el.tagName) return false;
+    var tag = el.tagName;
+    return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' ||
+      tag === 'OPTION' || !!el.isContentEditable;
+  }
+
+  function adjustRate(step) {
+    var sel = document.getElementById('tts-rate');
+    if (!sel) return;
+    var i = sel.selectedIndex + step;
+    if (i < 0 || i >= sel.options.length) return;
+    sel.selectedIndex = i;
+    announce('Velocidade ' + sel.options[i].textContent);
+    restartHere();
+  }
+
+  /*
+   * Keyboard control, in two layers.
+   *
+   * Bare arrows and Enter act ONLY while a readable block holds focus — that is
+   * the composite-widget contract: the reader deliberately Tabbed into the
+   * prose, so the arrows belong to the cursor there and to the page everywhere
+   * else. preventDefault matters on those: without it the block scrolls under
+   * the cursor AND the page scrolls too, moving twice per press.
+   *
+   * Everything else is Alt-based, and the modifier choice is not cosmetic.
+   * Single-letter shortcuts (j/k/l, the usual choice in reading apps) are
+   * swallowed whole by NVDA and JAWS in browse mode, where letters are
+   * quick-navigation keys — the handler never sees the event, so they would be
+   * dead keys for exactly the audience this is meant to serve. Space is the
+   * page-scroll key and hijacking it breaks ordinary reading.
+   *
+   * Alt+Shift+Arrow, NOT Alt+Arrow, for previous/next: Alt+Left and Alt+Right
+   * are Back and Forward in Chrome, Edge and Firefox on Windows, so binding
+   * them would navigate away from the page mid-sentence. Shift takes the combo
+   * out of the browser's reach.
+   *
+   * `e.code` rather than `e.key` for the letter and the full stop: Alt rewrites
+   * `e.key` on several layouts (Alt+P is "π" on macOS), while `code` names the
+   * physical key and stays put.
+   */
+  function onKeyDown(e) {
+    if (e.defaultPrevented || isTypingTarget(e.target)) return;
+    if (e.ctrlKey || e.metaKey) return;
+
+    if (!e.altKey) {
+      var focused = focusedBlockIndex();
+      if (focused === -1 || e.shiftKey) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); setKeyboardCursor(focused + 1, true); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setKeyboardCursor(focused - 1, true); return; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        announce('Lendo');
+        startFrom(focused, 0);
+      }
+      return;
+    }
+
+    if (!blocks.length) collectBlocks();
+
+    if (e.shiftKey) {
+      if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        setKeyboardCursor(keyboardBlockIndex + 1, false);
+        startFrom(keyboardBlockIndex, 0);
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setKeyboardCursor(keyboardBlockIndex - 1, false);
+        startFrom(keyboardBlockIndex, 0);
+      }
+      return;
+    }
+
+    if (e.code === 'KeyP') { e.preventDefault(); togglePlay(); }
+    else if (e.code === 'Period' || e.code === 'NumpadDecimal') { e.preventDefault(); stop(); }
+    else if (e.code === 'ArrowUp') { e.preventDefault(); adjustRate(1); }
+    else if (e.code === 'ArrowDown') { e.preventDefault(); adjustRate(-1); }
+  }
+
+  /*
+   * Tabbing or clicking into a different block moves the cursor with it, so the
+   * arrows always continue from where the reader actually is rather than from
+   * wherever the cursor was last parked.
+   */
+  function onFocusIn(e) {
+    var index = e.target && e.target.closest ? blocks.indexOf(e.target.closest(BLOCK_SELECTOR)) : -1;
+    if (index !== -1 && index !== keyboardBlockIndex) setKeyboardCursor(index, false);
   }
 
   function init() {
@@ -911,6 +1094,8 @@
     collectBlocks();
     document.addEventListener('pointerover', onPointerOver);
     document.addEventListener('click', onClick);
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('focusin', onFocusIn);
     // Chromium keeps speaking after navigation unless told otherwise.
     window.addEventListener('beforeunload', function () { synth.cancel(); });
   }
