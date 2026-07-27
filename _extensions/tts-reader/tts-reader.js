@@ -65,6 +65,35 @@
     footnotes: 'Notas de rodapé'
   };
   var STORAGE_KEY = 'tts-reader-opts';
+
+  /*
+   * Preferences that are NOT part of the ⚙ menu, and must not be.
+   *
+   * `DEFAULT_OPTS` above answers one question — what gets SPOKEN — and changing
+   * any of its keys costs a full re-preparation of the document (applyOpts:
+   * stop, unwrap every span, re-collect). These three answer different
+   * questions and cost nothing, so they live apart. Folding them into
+   * DEFAULT_OPTS would also put them in the ⚙ menu automatically, since it
+   * iterates that object's keys, and they would appear there under the heading
+   * "read aloud:" — which is not what any of them means.
+   */
+  var VOICE_KEY = 'tts-reader-voice';
+  var RATE_KEY = 'tts-reader-rate';
+  var LANG_KEY = 'tts-reader-lang';
+  var CLICK_KEY = 'tts-reader-click-to-read';
+
+  function readStored(key) {
+    try { return window.localStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function writeStored(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (e) {}
+  }
+
+  // Click-to-read is ON unless the reader turned it off: only the exact string
+  // 'false' counts, so a cleared or unreadable store falls back to the default.
+  var clickToRead = readStored(CLICK_KEY) !== 'false';
+
   var opts = loadOpts();
 
   function loadOpts() {
@@ -773,24 +802,43 @@
     rateLabel.setAttribute('for', 'tts-rate');
     var rate = document.createElement('select');
     rate.id = 'tts-rate';
+    var savedRate = readStored(RATE_KEY);
     ['0.75', '0.85', '1', '1.15', '1.25', '1.5', '1.75', '2'].forEach(function (v) {
       var o = document.createElement('option');
       o.value = v;
       o.textContent = (v === '1' ? '1.0' : v) + '×';
-      if (v === '1') o.selected = true;
+      if (v === (savedRate || '1')) o.selected = true;
       rate.appendChild(o);
     });
-    rate.addEventListener('change', restartHere);
+    rate.addEventListener('change', function () {
+      writeStored(RATE_KEY, rate.value);
+      restartHere();
+    });
+
+    var langLabel = document.createElement('label');
+    langLabel.textContent = 'Lang';
+    langLabel.setAttribute('for', 'tts-lang');
+    var lang = document.createElement('select');
+    lang.id = 'tts-lang';
+    lang.addEventListener('change', function () {
+      writeStored(LANG_KEY, lang.value);
+      populateVoices();
+    });
 
     var voiceLabel = document.createElement('label');
     voiceLabel.textContent = 'Voice';
     voiceLabel.setAttribute('for', 'tts-voice');
     var voice = document.createElement('select');
     voice.id = 'tts-voice';
-    voice.addEventListener('change', restartHere);
+    voice.addEventListener('change', function () {
+      writeStored(VOICE_KEY, voice.value);
+      restartHere();
+    });
 
     right.appendChild(rateLabel);
     right.appendChild(rate);
+    right.appendChild(langLabel);
+    right.appendChild(lang);
     right.appendChild(voiceLabel);
     right.appendChild(voice);
     right.appendChild(buildOptsMenu());
@@ -888,6 +936,38 @@
     note.textContent = 'Citações narrativas ("Autor (2020) mostra…") são sempre lidas: sem elas a frase perde o sujeito.';
     panel.appendChild(note);
 
+    /*
+     * Click-to-read lives HERE and not on the bar: the bar already wraps to two
+     * rows on a narrow screen, and this is a set-once preference, not something
+     * touched while reading. It is also separated from the checkboxes above by a
+     * rule, because it answers a different question — those say what is spoken,
+     * this says how reading starts.
+     */
+    var clickTitle = document.createElement('p');
+    clickTitle.className = 'tts-opts-title tts-opts-title-second';
+    clickTitle.textContent = 'Interação:';
+    panel.appendChild(clickTitle);
+
+    var clickRow = document.createElement('label');
+    clickRow.setAttribute('for', 'tts-opt-click');
+    var clickBox = document.createElement('input');
+    clickBox.type = 'checkbox';
+    clickBox.id = 'tts-opt-click';
+    clickBox.checked = clickToRead;
+    clickBox.addEventListener('change', function () {
+      clickToRead = clickBox.checked;
+      writeStored(CLICK_KEY, clickToRead ? 'true' : 'false');
+      applyClickMode();
+    });
+    clickRow.appendChild(clickBox);
+    clickRow.appendChild(document.createTextNode(' Iniciar a leitura ao clicar numa palavra'));
+    panel.appendChild(clickRow);
+
+    var clickNote = document.createElement('p');
+    clickNote.className = 'tts-opts-note';
+    clickNote.textContent = 'Desligue para selecionar e copiar texto sem que o primeiro clique de um duplo-clique comece a leitura.';
+    panel.appendChild(clickNote);
+
     wrap.appendChild(toggle);
     wrap.appendChild(panel);
 
@@ -925,28 +1005,112 @@
     return b;
   }
 
+  /*
+   * The PRIMARY subtag of a language code, normalised.
+   *
+   * Filtering on the full code would split `pt-BR` from `pt-PT` and `en-US`
+   * from `en-GB`, leaving the reader of a Portuguese document unable to see
+   * half the Portuguese voices. Some engines also report `pt_BR` with an
+   * underscore, which no amount of comparing against `pt-BR` will ever match.
+   */
+  function primaryLang(code) {
+    return String(code || '').replace('_', '-').split('-')[0].toLowerCase();
+  }
+
+  function documentLang() {
+    return primaryLang(document.documentElement.getAttribute('lang'));
+  }
+
+  /*
+   * Fill the language <select> from the voices the browser actually has, and
+   * decide which one starts selected.
+   *
+   * 'all' is not a convenience, it is a safety valve. Quarto emits `lang="en"`
+   * whenever the document does not set one, so a Portuguese thesis that forgot
+   * `lang: pt-BR` would silently show English voices only and look broken. The
+   * document language is honoured just when voices for it exist; otherwise the
+   * filter opens rather than showing an empty list.
+   */
+  function populateLanguages() {
+    var sel = document.getElementById('tts-lang');
+    if (!sel) return 'all';
+
+    var seen = {};
+    var codes = [];
+    voices.forEach(function (v) {
+      var code = primaryLang(v.lang);
+      if (code && !seen[code]) { seen[code] = true; codes.push(code); }
+    });
+    codes.sort();
+
+    var stored = readStored(LANG_KEY);
+    var chosen = 'all';
+    if (stored && (stored === 'all' || seen[stored])) chosen = stored;
+    else if (!stored && seen[documentLang()]) chosen = documentLang();
+
+    sel.innerHTML = '';
+    var all = document.createElement('option');
+    all.value = 'all';
+    all.textContent = 'Todos';
+    sel.appendChild(all);
+    codes.forEach(function (code) {
+      var o = document.createElement('option');
+      o.value = code;
+      o.textContent = code;
+      sel.appendChild(o);
+    });
+    sel.value = chosen;
+    return chosen;
+  }
+
   function populateVoices() {
     voices = synth.getVoices();
     var sel = document.getElementById('tts-voice');
     if (!sel || !voices.length) return;
 
-    var previous = sel.value;
+    var filter = populateLanguages();
+    // What the reader is hearing right now outranks anything stored: a voice
+    // change is only wanted when the reader asks for one.
+    var active = activeUtterance && activeUtterance.voice ? voiceKey(activeUtterance.voice) : '';
+    var wanted = sel.value || active || readStored(VOICE_KEY) || '';
+
+    var shown = voices.filter(function (v) {
+      return filter === 'all' || primaryLang(v.lang) === filter;
+    });
+
+    /*
+     * The voice being spoken stays listed even when the filter excludes it.
+     *
+     * Narrowing the language while a pt-BR voice is mid-paragraph would
+     * otherwise drop it from the list, and the <select> would fall to whatever
+     * option happened to be first — silently reassigning the voice under a
+     * running utterance. Filtering is a browsing action; it must never
+     * interrupt or change what is being read.
+     */
+    var keepsActive = shown.some(function (v) { return voiceKey(v) === active; });
+    if (active && !keepsActive) {
+      voices.forEach(function (v) { if (voiceKey(v) === active) shown.unshift(v); });
+    }
+
+    // Voices of the document's language first — the old rule put English first
+    // unconditionally, which stopped making sense once the language could be
+    // chosen. Within a group the browser's own order is kept.
+    var docLang = documentLang();
+    var preferred = shown.filter(function (v) { return primaryLang(v.lang) === docLang; });
+    var rest = shown.filter(function (v) { return primaryLang(v.lang) !== docLang; });
+    var ordered = preferred.concat(rest);
+
     sel.innerHTML = '';
-
-    var english = voices.filter(function (v) { return v.lang.indexOf('en') === 0; });
-    var others = voices.filter(function (v) { return v.lang.indexOf('en') !== 0; });
-    var ordered = english.concat(others);
-
     var restored = false;
     ordered.forEach(function (v) {
       var o = document.createElement('option');
       o.value = voiceKey(v);
       o.textContent = v.name + ' (' + v.lang + ')';
-      if (previous && o.value === previous) { o.selected = true; restored = true; }
+      if (wanted && o.value === wanted) { o.selected = true; restored = true; }
       sel.appendChild(o);
     });
 
-    if (!restored && !previous) {
+    if (!restored) {
       for (var i = 0; i < ordered.length; i++) {
         if (isRemoteVoice(ordered[i]) || ordered[i].default) {
           sel.value = voiceKey(ordered[i]);
@@ -966,7 +1130,25 @@
     if (el && blocks.indexOf(el) !== -1) ensurePrepared(el);
   }
 
+  /*
+   * Reflect click-to-read in the cursor.
+   *
+   * A class on <body> and not a change to `.tts-readable`: collectBlocks()
+   * re-adds that class on every re-collection, so removing it would be a fix
+   * that quietly undoes itself the next time a ⚙ option changes. The body class
+   * survives because nothing else touches it.
+   *
+   * This deliberately does NOT go through applyOpts(): what starts the reading
+   * has no bearing on what gets spoken, and running the full stop + unwrap +
+   * re-collect cycle would kill playback to change a cursor.
+   */
+  function applyClickMode() {
+    document.body.classList.toggle('tts-click-disabled', !clickToRead);
+  }
+
   function onClick(e) {
+    if (!clickToRead) return;
+
     // Never hijack interactive elements — citation links above all, which must
     // navigate to the bibliography rather than start the reader.
     //
@@ -1092,6 +1274,7 @@
       synth.onvoiceschanged = populateVoices;
     }
     collectBlocks();
+    applyClickMode();
     document.addEventListener('pointerover', onPointerOver);
     document.addEventListener('click', onClick);
     document.addEventListener('keydown', onKeyDown);

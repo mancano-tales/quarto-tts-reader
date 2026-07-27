@@ -72,9 +72,22 @@ so PDF and DOCX output is untouched whatever the flag says.
 | Play / Pause | Starts, or pauses and resumes near the word where you stopped |
 | ⏮ / ⏭ | Previous / next block |
 | ⏹ | Stop and clear highlighting |
-| Speed | 0.75× to 2×, keeps your place when changed |
-| Voice | Any voice the browser exposes; keeps your place when changed |
-| Click a word | Starts reading from that word |
+| Speed | 0.75× to 2×, keeps your place when changed, remembered per browser |
+| Lang | Narrows the voice list to one language; `Todos` shows every voice |
+| Voice | Any voice the browser exposes; keeps your place when changed, remembered per browser |
+| Click a word | Starts reading from that word — can be switched off in the ⚙ menu |
+
+The language filter groups by the primary subtag, so choosing `pt` shows both
+`pt-BR` and `pt-PT` voices. It starts on the document's own `lang` when the
+browser has voices for it, and on `Todos` otherwise — a document that never
+declared `lang:` gets `lang="en"` from Quarto, and filtering that strictly would
+hide every voice the reader actually wants. Changing the filter never interrupts
+what is playing: the voice being spoken stays in the list even when the filter
+excludes it, until you pick a different one.
+
+Turning **click a word** off in the ⚙ menu lets you double-click to select and
+copy text without the first click of the pair starting the reader. The keyboard
+cursor keeps working either way.
 
 Citation links, footnote markers and other interactive elements stay clickable —
 clicking a link navigates, it does not start the reader. Footnote reference

@@ -105,3 +105,28 @@ barra:
 Por fim, clique numa palavra no meio do documento, pressione `Alt+P` para pausar
 e então `Tab` até a prosa: o cursor de leitura tem de estar no parágrafo que
 estava sendo lido, não no primeiro do documento.
+
+### Persistência, filtro de idioma e clique (v2.2.0)
+
+**Persistência.** Escolha uma voz e mude a velocidade para 1.25×. Pressione F5.
+As duas escolhas têm de voltar como estavam — antes da v2.2.0 nenhuma das duas
+sobrevivia ao recarregamento, o que com `quarto preview` significava reescolher
+a cada vez que o arquivo era salvo.
+
+**Filtro de idioma.** O seletor `Lang` deve trazer `Todos` mais uma entrada por
+idioma que o navegador tem voz. Como este documento não declara `lang:`, o
+Quarto emite `lang="en"`: se houver vozes em inglês o filtro deve abrir em `en`,
+e o `Todos` tem de continuar acessível para chegar às vozes em português.
+Escolha `pt` e confira que aparecem tanto `pt-BR` quanto `pt-PT`, se você tiver
+as duas — o agrupamento é pela subtag primária, de propósito.
+
+**O filtro não pode interromper a leitura.** Comece a ler com uma voz em
+português e então mude o filtro para `en`. A fala **tem** de continuar, e a voz
+ativa tem de permanecer visível no seletor de vozes mesmo estando fora do
+filtro. Só ao escolher outra voz a leitura reinicia do ponto atual.
+
+**Clique on/off.** No menu ⚙, desmarque "Iniciar a leitura ao clicar numa
+palavra". O cursor de mãozinha sobre o texto tem de sumir. Dê um duplo-clique
+numa palavra: ela deve ser selecionada sem que a leitura comece. Confira que o
+teclado continua funcionando com o clique desligado (`Tab` até a prosa, `Enter`).
+Remarque a opção e o clique volta a ler.

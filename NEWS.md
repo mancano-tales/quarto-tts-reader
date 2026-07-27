@@ -3,6 +3,30 @@
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
+## 2026-07-27 16:04 — v2.2.0: a voz e a velocidade param de esquecer, filtro de idioma, clique desligável
+
+**A lacuna mais irritante não era o filtro: era que nada era lembrado.** Nem a voz nem a velocidade sobreviviam a um recarregamento, e com `quarto preview` — que re-renderiza a cada save — isso significa reescolher as duas o dia inteiro. As duas passam a viver no `localStorage`. A voz é gravada pela chave `voiceKey` (`nome|lang`) e **nunca** por índice, pelo mesmo motivo já documentado no código: `getVoices()` pode ser re-obtido em ordem diferente, e um índice guardado apontaria em silêncio para outra voz.
+
+**Filtro de idioma por subtag primária.** Filtrar pelo código completo separaria `pt-BR` de `pt-PT` e `en-US` de `en-GB`, escondendo metade das vozes da própria língua do documento; alguns engines ainda reportam `pt_BR` com sublinhado, que nenhuma comparação com `pt-BR` jamais casa. O agrupamento é por `pt`, `en`, `es`, com normalização do separador.
+
+**A opção "Todos" não é conveniência, é válvula de segurança.** O Quarto emite `lang="en"` sempre que o documento não declara idioma — então uma tese em português que esqueceu `lang: pt-BR` mostraria só vozes em inglês e pareceria quebrada. O idioma do documento só é adotado quando existem vozes para ele; caso contrário o filtro abre em "Todos" em vez de exibir lista vazia.
+
+**Filtrar nunca interrompe a leitura.** Estreitar o idioma com uma voz `pt-BR` no meio do parágrafo a tiraria da lista, e o `<select>` cairia para a primeira opção disponível — trocando a voz sob uma fala em curso, sem ninguém pedir. A voz ativa permanece listada mesmo fora do filtro, até que o leitor escolha outra. Filtrar é ação de navegação; não pode mudar o que está sendo lido.
+
+**A ordenação antiga ficou obsoleta.** `populateVoices()` punha inglês primeiro incondicionalmente — regra que deixou de fazer sentido quando o idioma passou a ser escolhível. Agora vêm primeiro as vozes do idioma do documento.
+
+**Clique na palavra desligável.** O caso real não é "permitir seleção de texto", que o `getSelection()` já tratava: é o **primeiro** clique de um duplo-clique, que dispara antes de a seleção existir e começa a leitura enquanto o leitor só queria copiar uma palavra. A preferência tem chave própria (`tts-reader-click-to-read`) e fica **fora** de `DEFAULT_OPTS`: o menu ⚙ itera as chaves daquele objeto e a renderizaria sob o título "Ler em voz alta:", que não é o que ela significa. Ela também **não** passa por `applyOpts()` — o que inicia a leitura não tem relação com o que é falado, e rodar o ciclo de parar + desembrulhar + recoletar para mudar um cursor mataria a reprodução. O cursor de mãozinha some junto, por classe no `<body>` e não removendo `.tts-readable`, que `collectBlocks()` readiciona a cada recoleta — seria um conserto que se desfaz sozinho.
+
+O controle novo mora no menu ⚙ e não na barra: a barra já quebra em duas linhas em tela estreita, e essa é preferência de ajustar uma vez, não de mexer enquanto se lê.
+
+**Verificado**: `node --check`; render sem flag → 2; render com `-M tts-reader-enabled=false` → 0. **Não verificado**: se a persistência sobrevive ao F5 de verdade, se o filtro lista o que deveria, se a leitura realmente não é interrompida ao filtrar, e se o duplo-clique passa a selecionar sem ler. Roteiro na § "Persistência, filtro de idioma e clique" do `example.qmd`.
+
+**Metadados de Execução**:
+- **Data/Hora**: 2026-07-27 16:04 (Horário Local)
+- **Agente**: Claude Code / Claude Opus 5 / VS Code
+- **Mensagem do Commit**: "feat(v2.2.0): persistencia de voz e velocidade, filtro de idioma, clique desligavel"
+- **Arquivos afetados**: _extensions/tts-reader/tts-reader.js, _extensions/tts-reader/tts-reader.css, _extensions/tts-reader/tts-reader.lua, _extensions/tts-reader/_extension.yml, README.md, example.qmd, NEWS.md, TODO.md
+
 ## 2026-07-27 15:31 — v2.1.0: ler a partir de qualquer ponto sem mouse
 
 Até aqui a barra era operável por teclado, mas não havia como escolher **onde** começar a ler sem clicar. Era a lacuna que sobrava do posicionamento da v2.0.0: um player oferecido ao leitor do documento publicado que exige mouse para escolher o parágrafo serve mal justamente a parte do público a que se dirige.

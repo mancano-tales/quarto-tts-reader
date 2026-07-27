@@ -66,6 +66,12 @@ a .tts-word.tts-word-active {
   cursor: pointer;
 }
 
+/* Click-to-read switched off: the pointer cursor has to go with it, or the page
+   keeps advertising an affordance that no longer exists. */
+body.tts-click-disabled .tts-readable {
+  cursor: auto;
+}
+
 /* The reading cursor: the one block that is a Tab stop at any moment.
  *
  * `outline` and NOT a border or a background: this ring appears and disappears
@@ -218,6 +224,14 @@ a .tts-word.tts-word-active {
   font-size: 0.78rem;
   font-weight: 600;
   color: #cbd5e1;
+}
+
+/* Second heading in the ⚙ panel, ruled off from the list above it: the
+   checkboxes there say what gets SPOKEN, this one says how reading STARTS. */
+#tts-reader-bar .tts-opts-title-second {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #475569;
 }
 
 #tts-reader-bar .tts-opts-panel label {
