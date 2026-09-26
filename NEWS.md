@@ -3,6 +3,18 @@
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
+## 2026-09-26 16:35 — AGENTS.md é o arquivo de instruções; CLAUDE.md vira ponteiro
+
+Decisão do autor (plano `repo-governance/plan/2026-09-26_Plano_AGENTS_Enxutos_e_Export_Sob_Demanda.md` do `mancano-repo-hub` (issue #27 de lá)). A RULE 3 dizia o contrário ("nunca edite o `AGENTS.md`, é espelho do `CLAUDE.md`"). Agora o `AGENTS.md` é o arquivo real e o `CLAUDE.md` contém só `@AGENTS.md`.
+
+O conteúdo é o mesmo de antes; mudaram só o título, a RULE 3, o mapa dos documentos e a árvore da estrutura. Saiu a regra de hard link que existia apenas no `CLAUDE.md`.
+
+**Metadados de Execução**:
+- **Data/Hora**: 2026-09-26 16:35 (Horário Local)
+- **Agente**: Claude Code / Claude Opus 5.5 / Claude Code on the web
+- **Mensagem do Commit**: "docs(agents): AGENTS.md unico e enxuto; CLAUDE.md vira @AGENTS.md"
+- **Arquivos afetados**: `AGENTS.md`, `CLAUDE.md`, `NEWS.md`
+
 ## 2026-07-27 16:19 — v2.3.0: papel, tinta e terracota — o visual portado do `planning-repo`
 
 Pedido do autor, com referência explícita: o `planning-repo`, do mesmo ecossistema. O que faz aquele desenho funcionar não é vidro fosco — é o oposto: **papel quente, tinta e terracota, com tipografia editorial**.

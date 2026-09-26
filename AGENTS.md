@@ -1,9 +1,9 @@
-# CLAUDE.md / AGENTS.md — quarto-tts-reader
+# AGENTS.md — quarto-tts-reader
 
 > 🚨 **CRITICAL AGENT RULES (COVENANT) — READ FIRST:**
 > - **RULE 1:** Every commit is audited. Never commit without the verification of § "Verificação obrigatória" passing.
 > - **RULE 2:** Any change to `_extensions/` REQUIRES an entry in `NEWS.md` **in the same commit**.
-> - **RULE 3:** Never edit `AGENTS.md` by hand — it is a mirror of this file. Edit `CLAUDE.md` only.
+> - **RULE 3:** `AGENTS.md` (this file) is the only instruction file. `CLAUDE.md` contains just `@AGENTS.md`: never copy content into it.
 > - **RULE 4:** Never claim the player works without rendering `example.qmd`. Audio behaviour cannot be verified by reading code; see § "O que agentes NÃO conseguem verificar".
 > - **For humans:** this file is AI operating context. See [README.md](README.md).
 
@@ -92,8 +92,8 @@ Se a hora exata não puder ser recuperada com confiança, deixe só a data e exp
 
 | Documento | Público | Função | Quando atualizar |
 |---|---|---|---|
-| `CLAUDE.md` (este) | Agentes | Estado ATUAL, convenções, armadilhas | Mudança de concepção |
-| `AGENTS.md` | Agentes | Espelho de `CLAUDE.md` — nunca editar à mão | Junto com `CLAUDE.md` |
+| `AGENTS.md` (este) | Agentes | Estado ATUAL, convenções, armadilhas | Mudança de concepção |
+| `CLAUDE.md` | Claude Code | Só `@AGENTS.md` (importa este arquivo) | Nunca |
 | `README.md` | Humanos | O que é, como instalar, limitações | Mudança de uso |
 | `NEWS.md` | Ambos | Changelog — histórico, nunca reescrito | Toda mudança relevante |
 | `TODO.md` | Ambos | Fila de tarefas (Pendente/Prospectivo/Concluído) | Toda sessão que cria ou conclui tarefa |
@@ -111,7 +111,7 @@ quarto-tts-reader/
 │   ├── tts-reader.js      # o player
 │   └── tts-reader.css     # destaques e barra de controles
 ├── example.qmd            # ⭐ na RAIZ, não em subpasta (ver abaixo)
-├── CLAUDE.md / AGENTS.md / README.md / NEWS.md / TODO.md / LICENSE
+├── AGENTS.md / CLAUDE.md (@AGENTS.md) / README.md / NEWS.md / TODO.md / LICENSE
 ```
 
 **Gotcha verificado (2026-07-26): `example.qmd` tem de ficar na raiz do repositório.** Numa subpasta, sem `_quarto.yml`, o Quarto trata a pasta do documento como raiz do projeto, não encontra `_extensions/` e falha com *"Could not find executable …/tts-reader"*, interpretando o nome do filtro como caminho de executável. É a mesma estrutura das extensões oficiais (`quarto-ext/*`).
