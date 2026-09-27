@@ -1,5 +1,8 @@
 # NEWS — quarto-tts-reader
 
+<!-- NEWS-FRAGMENTS:BEGIN -->
+<!-- NEWS-FRAGMENTS:END -->
+
 > Entrada mais recente no topo. Histórico: entradas nunca são reescritas.
 >
 > **Convenção de timestamp**: formato `YYYY-MM-DD HH:MM`, Horário de Brasília (UTC-3, sem horário de verão). Data sozinha não é suficiente. **Atenção ao gotcha do fuso documentado no `CLAUDE.md`** — `TZ='America/Sao_Paulo'` devolve UTC no Git Bash do Windows; use `date` puro e confira que `%z` imprime `-0300`.
